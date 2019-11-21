@@ -29,11 +29,17 @@ public:
 
     void computeForce ( );
 
-    //method to modify A, E, Force
 
-    //method to get disp at certain nodes
 
-    //methode to get force at certain members
+    void modA(int index, double Area)    { A_[index] = Area ;}
+    void modE(int index, double Modulus) { E_[index] = Modulus ;}
+
+    double getDisp(int dofIndex)         { return allDisp_[dofIndex] ; }
+    Eigen::VectorXd getDisp(   )         { return allDisp_ ; }
+
+    double getForce(int dofIndex)        { return allForce_[dofIndex] ; }
+    Eigen::VectorXd getForce(   )        { return allForce_ ; }
+
 
     ~FEMFUNC ( ) { };
 
@@ -63,6 +69,7 @@ private:
 
     Eigen::VectorXd disp_;
     Eigen::VectorXd allDisp_;
+    Eigen::VectorXd allForce_;
 
     Eigen::MatrixXd S_;
 
@@ -93,6 +100,10 @@ FEMFUNC::FEMFUNC( bool verbosity  ){
     members_       = members;
     memberData_    = memberData;
     force_         = force;
+
+    //make element wise copy of matrixXd force_ as this one is reduced by reference in code
+    allForce_.resize(force_.size());
+    for(int i = 0; i < force_.size(); ++i){ allForce_[i] = force_( i, 0) ;}
 
     vectorOfK_.resize(numberElms_);
     vectorOfLocalK_.resize(numberElms_);
