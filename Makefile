@@ -4,7 +4,7 @@ LD    = g++
 
 # includes
 INCLUDES  = -I$(ThreedTrussDef.hpp)
-INCLUDES += -I$(FEMFunc.hpp)
+INCLUDES += -I$(FEMClass.hpp)
 INCLUDES += -I$(EIGEN_DIR)
 
 # libraries

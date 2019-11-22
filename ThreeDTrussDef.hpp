@@ -118,7 +118,7 @@ void InitialTrussAssignment(){
             0, 0;  //-22
 
 
-    //force applied at degree of fredom
+    //force applied at degree of freedom
     force <<
           //x      y      z
             0,     0,     0,  //-0

@@ -1,12 +1,12 @@
 /*
- * FEMFunc.hpp
+ * FEMClass.hpp
  *
  *  Created on: 21 Nov 2019
  *      Author: arnaudv
  */
 
-#ifndef FEMCLS_HPP_
-#define FEMFUNC_HPP_
+#ifndef FEMClass_HPP_
+#define FEMClass_HPP_
 
 #include <iostream>
 #include <vector>
@@ -16,12 +16,12 @@
 
 
 
-class FEMFUNC{
+class FEMClass{
 public:
 
-    FEMFUNC ( ) { };
+    FEMClass ( ) { };
 
-    FEMFUNC ( bool );
+    FEMClass ( bool );
 
     void assembleS ( ) ;
 
@@ -41,7 +41,7 @@ public:
     Eigen::VectorXd getForce(   )        { return allForce_ ; }
 
 
-    ~FEMFUNC ( ) { };
+    ~FEMClass ( ) { };
 
 private:
 
@@ -83,7 +83,7 @@ private:
 
 };
 
-FEMFUNC::FEMFUNC( bool verbosity  ){
+FEMClass::FEMClass( bool verbosity  ){
 
     verbosity_ = verbosity ;
 
@@ -127,7 +127,7 @@ FEMFUNC::FEMFUNC( bool verbosity  ){
 
 }
 
-void FEMFUNC::assembleS(){
+void FEMClass::assembleS(){
     //---------------------------Compuete all Global K matrices-----------------------------//
 
     for(int i =0; i < numberElms_ ; ++i){
@@ -186,7 +186,7 @@ void FEMFUNC::assembleS(){
 }
 
 
-void FEMFUNC::computeDisp( ){
+void FEMClass::computeDisp( ){
     //---------------------------------compute displacement---------------------------------//
 
 
@@ -232,7 +232,7 @@ void FEMFUNC::computeDisp( ){
           if( verbosity_ ) { for(int i =0; i <23; i++){std::cout<<(i+1)*2<<'\n';} }
 }
 
-void FEMFUNC::computeForce( ){
+void FEMClass::computeForce( ){
 
     //-------------------------------compute force in members------------------------------//
        for(int kid =0 ; kid < numberElms_; ++kid){
@@ -261,7 +261,7 @@ void FEMFUNC::computeForce( ){
 
 }
 
-#endif /* FEMFUNC_HPP_ */
+#endif /* FEMClass_HPP_ */
 
 
 

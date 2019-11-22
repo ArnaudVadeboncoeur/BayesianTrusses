@@ -11,7 +11,7 @@
 #include <vector>
 #include <random>
 #include <cmath>
-#include "FEMFunc.hpp"
+#include "FEMClass.hpp"
 
 #include <Eigen/Dense>
 
@@ -33,7 +33,7 @@ int main(){
     int Iters = 1e4;
     for(int i = 0; i < Iters ; i++){
 
-        FEMFUNC TrussFem(false);
+        FEMClass TrussFem(false);
         double A = lognormal( engine ) / 100;
         double disp;
         TrussFem.modA(1, A);
@@ -55,7 +55,7 @@ int main(){
     std::cout<<"expecDisp  = "<<expecDisp<<"\n\n";
     std::cout<<"expecA  = "<<expecA<<"\n\n";
 
-    FEMFUNC TrussFem(false);
+    FEMClass TrussFem(false);
     double mean = exp(mu + sig*sig/2.0) / 100;
 
     //TrussFem.modA(1, mean);
@@ -65,7 +65,7 @@ int main(){
     TrussFem.computeDisp( );
     TrussFem.computeForce( );
     std::cout<<"mean LogNorm = "<<mean<<'\n';
-    std::cout<<"FEMFUNC(mean) = "<<TrussFem.getDisp(6)<<'\n';
+    std::cout<<"FEMClass(mean) = "<<TrussFem.getDisp(6)<<'\n';
 
 
     return 0;
