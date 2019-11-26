@@ -3,8 +3,8 @@ CXX   = g++
 LD    = g++
 
 # includes
-INCLUDES  = -I$(ThreedTrussDef.hpp)
-INCLUDES += -I$(FEMClass.hpp)
+#INCLUDES  = -I$(ThreedTrussDef.hpp)
+INCLUDES += -I$(/src/FEMClass.hpp)
 INCLUDES += -I$(EIGEN_DIR)
 
 # libraries
@@ -15,7 +15,7 @@ CPPFLAGS  = -std=c++11
 CPPFLAGS += $(INCLUDES)
 
 # the final target
-TARGET = SimpleFEMTruss.exe
+TARGET = Compiled.exe
 
 # find the sources and object files
 CPPFILES = $(wildcard *.cpp)

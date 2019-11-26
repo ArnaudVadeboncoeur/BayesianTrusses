@@ -11,12 +11,12 @@
 #include <vector>
 #include <random>
 #include <cmath>
-#include "FEMClass.hpp"
+#include "src/FEMClass.hpp"
 
 #include <Eigen/Dense>
 
 
-int main(){
+int main1(){
 
     std::ofstream myFile;
     myFile.open("results.dat");
@@ -30,7 +30,7 @@ int main(){
 
     double SumDisp = 0;
     double SumA = 0;
-    int Iters = 1e4;
+    int Iters = 1e3;
     for(int i = 0; i < Iters ; i++){
 
         FEMClass TrussFem(false);

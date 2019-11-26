@@ -21,7 +21,9 @@ public:
 
     FEMClass ( ) { };
 
-    FEMClass ( bool );
+    FEMClass ( bool ) ;
+
+    void FEMClassReset ( bool );
 
     void assembleS ( ) ;
 
@@ -83,9 +85,18 @@ private:
 
 };
 
-FEMClass::FEMClass( bool verbosity  ){
+FEMClass::FEMClass ( bool verbosity ) {
 
-    verbosity_ = verbosity ;
+    FEMClassReset( verbosity );
+
+}
+
+
+
+
+void FEMClass::FEMClassReset( bool verbosity ){
+
+    verbosity_ = verbosity;
 
     InitialTrussAssignment();
 
@@ -101,9 +112,11 @@ FEMClass::FEMClass( bool verbosity  ){
     memberData_    = memberData;
     force_         = force;
 
+    freeDof_.clear();
+
     //make element wise copy of matrixXd force_ as this one is reduced by reference in code
-    allForce_.resize(force_.size());
-    for(int i = 0; i < force_.size(); ++i){ allForce_[i] = force_( i, 0) ;}
+      allForce_.resize(force_.size());
+      for(int i = 0; i < force_.size(); ++i){ allForce_[i] = force_( i, 0) ;}
 
     vectorOfK_.resize(numberElms_);
     vectorOfLocalK_.resize(numberElms_);
@@ -115,16 +128,15 @@ FEMClass::FEMClass( bool verbosity  ){
     baseK_.resize(2,2);
     baseK_ << 1, -1, -1, 1;
 
-    S_.resize( numberNodes_ * 3, numberNodes_ * 3 );
-
-    allDisp_.resize( numberNodes_ * 3 );
+    S_ = Eigen::MatrixXd::Zero( numberNodes_ * 3, numberNodes_ * 3 );
+    allDisp_= Eigen::VectorXd::Zero( numberNodes_ * 3 );
 
     vectorOfU_.resize( numberElms_ );
     vectorOfQ_.resize( numberElms_ );
     vectorOfV_.resize( numberElms_ );
 
     if(verbosity_){std::cout<<"Done Creating local containers"<<'\n';}
-
+    return;
 }
 
 void FEMClass::assembleS(){
