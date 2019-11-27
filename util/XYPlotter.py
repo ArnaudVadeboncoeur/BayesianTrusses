@@ -20,7 +20,8 @@ with open('../results.dat','r') as f:
 		split = line.rstrip().split(" ")
 		data.append([float(line) if is_float(line) else line  for line in split ])
 data = np.array(data, dtype = float)
-print(data)
+
+#print(data)
 
 try:
 	columns = len(data[0])# - 1 
@@ -49,14 +50,14 @@ if( ndim == 1):
 if(ndim ==2 ):
 	
     #data = np.array(data[:,:], dtype=[('x', float), ('y', float)])
-    data.sort(axis=0)
+    #data.sort(axis=0)
     print(data)
     #plt.scatter(data[:,0], data[:,1], s=5)
     plt.plot(data[:,0], data[:,1])
     #matplotlib.pyplot.scatter(x, y, s=20, c='b', marker='o', cmap=None, norm=None,
     #vmin=None, vmax=None, alpha=None, linewidths=None,
     #faceted=True, verts=None, hold=None, **kwargs)
-    plt.title("Frequency of Displacment DOF6-lognormal member area")
+    plt.title("Frequency of Displacment DOF9-lognormal member area")
     plt.savefig("FreqDisp.png")
     plt.show()
 	

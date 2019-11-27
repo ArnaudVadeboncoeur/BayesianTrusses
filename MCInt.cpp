@@ -25,19 +25,20 @@ int main(){
     //myFile.open("results.dat", std::ios::trunc);
 
     double mu = 0;
-    double sig = 1;
+    double sig = 0.25;
 
     double upperBound =  1e10;
     double lowerBound = -1e10;
 
     std::lognormal_distribution<double> lognormal( mu, sig  );
-    //std::normal_distribution<double> normal( mu, sig  );
+    std::normal_distribution<double> normal( mu, sig  );
+    std::uniform_real_distribution<double> uniform ( 0.0, 1.0 );
     std::random_device rd;
     std::mt19937 engine( rd() );
 
     double SumDisp = 0;
 
-    int numSamples = 1e5;
+    int numSamples =  1e5;//1e3;
     double valMax = -1e6;
     double valMin =  1e6;
 
@@ -47,29 +48,41 @@ int main(){
 
     for(int i = 0; i < numSamples ; i++){
 
-        double A = lognormal( engine ) / 100.0 ;
-        int dof = 6;
+        double A = lognormal( engine );// / 100.0 ;
+        //double A2 = lognormal( engine )  ;
+        //double A2 = 0.001;
         //double A = 0.01;
         double disp;
-        TrussFem.modA(1, A);
+        //TrussFem.modA(1, A1);
+        //double A;
+
+        //double randU = uniform(engine);
+
+        //if( randU > 0.75 ) { A = 0.4; }
+        //else if( randU > 0.25 ){ A = 0.2;}
+        //else{ A = 0.1; }
+
+        TrussFem.modA(0, A);
         TrussFem.assembleS( );
         TrussFem.computeDisp( );
         TrussFem.computeForce( );
 
 
-        allSamples(i, 0) = TrussFem.getDisp(dof);
+        allSamples(i, 0) = TrussFem.getDisp(10);
 
-        if( TrussFem.getDisp(dof) > valMax ) { valMax =  TrussFem.getDisp(dof); }
-        if( TrussFem.getDisp(dof) < valMin ) { valMin =  TrussFem.getDisp(dof); }
+        //allSamples(i, 1) = TrussFem.getDisp(22);
 
         //myFile<<A<<" "<<allSamples(i, 0)<<" "<<'\n';
 
+        //std::cout << allSamples(i, 0) << '\n';
+
         TrussFem.FEMClassReset(false);
+        if( (numSamples > 100 * 5 ) && ( i % (numSamples /100)  == 0 ) ){std::cout << "Sample " << i << " Computed" <<'\n';}
     }
 
     //myFile.close();
-
-    histBin(allSamples, valMax, valMin,true, true);
+    int nBins = 100;
+    histBin(allSamples, nBins, true, true);
     //FreqIntergral(allSamples, valMax, valMin);
 
 

@@ -12,7 +12,7 @@
 #include <vector>
 
 #include <Eigen/Dense>
-#include "ThreeDTrussDef.hpp"
+#include "ThreeDTrussDef OriginalSimpler.hpp"
 
 
 

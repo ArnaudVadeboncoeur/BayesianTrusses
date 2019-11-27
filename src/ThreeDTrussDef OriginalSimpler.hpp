@@ -9,7 +9,7 @@
     unsigned numberNodes = 4;
     unsigned numberElms  = 3;
 
-    Eigen::VectorXd A(2);
+    Eigen::VectorXd A(1);
     Eigen::VectorXd E(1);
     Eigen::MatrixXd nodes       (numberNodes, 3);
     Eigen::VectorXi dof         (numberNodes * 3);
@@ -19,7 +19,7 @@
 
 void InitialTrussAssignment(){
     //Areas
-    A << 0.0025, 0.005; //m^2
+    A << 0.0025; //m^2
 
     //Modulus of Elasticity
     E << 2e8; // N/m^2
@@ -45,13 +45,13 @@ void InitialTrussAssignment(){
     //Material Type;
                 //E, A
     memberData << 0, 0,
-                  0, 1,
+                  0, 0,
                   0, 0;
     //force applied at degree of fredom
-    force << 0,  0,  0,//    node 0 x,y,z
-             0,  0,  0,//    node 1 x,y,z
-             0,  0,  0,//    node 2 x,y,z
-             1000,50,  -1000;//    node 3 x,y,z
+    force << 0,     0,     0,//    node 0 x,y,z
+             0,     0,     0,//    node 1 x,y,z
+             0,     0,     0,//    node 2 x,y,z
+             0,     -1000, 0;//    node 3 x,y,z
 
     return;
 }
