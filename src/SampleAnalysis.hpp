@@ -17,7 +17,7 @@
 #include <Eigen/Dense>
 
 
-void MonteCarloAvgs(const Eigen::MatrixXd& allSamples){
+double MonteCarloAvgs(const Eigen::MatrixXd& allSamples){
     //Computes Average over range
    double upperBound =  1e10;
    double lowerBound = -1e10;
@@ -25,36 +25,39 @@ void MonteCarloAvgs(const Eigen::MatrixXd& allSamples){
    double valMin = 0;
    int sampleCtr = 0;
    double monteCarloSum  = 0;
+   int index = 0;
+   bool verbosity = false;
 
    for( unsigned i = 0; i < allSamples.rows(); ++i ){
 
-       if( (allSamples(i, 1) > lowerBound) || (allSamples(i, 1) < upperBound) ){
+       if( (allSamples(i, index) > lowerBound) || (allSamples(i, index) < upperBound) ){
 
-           if( allSamples(i, 1) > valMax )   {
-               valMax = allSamples(i, 1);
+           if( allSamples(i, index) > valMax )   {
+               valMax = allSamples(i, index);
            }
-           if(allSamples(i, 1) < valMin) {
-               valMin = allSamples(i, 1);
+           if(allSamples(i, index) < valMin) {
+               valMin = allSamples(i, index);
            }
 
-           monteCarloSum += allSamples(i, 1);
+           monteCarloSum += allSamples(i, index);
 
            sampleCtr ++ ;
        }
    }
 
-   std::cout <<"monteCarloSum = " << monteCarloSum << '\n';
-   std::cout <<"valMax = " << valMax << '\n';
-   std::cout <<"valMin = " << valMin << '\n';
-   std::cout <<"sampleCtr = " << sampleCtr << '\n';
-
 
    monteCarloSum = (valMax - valMin)  *  (double) 1 / sampleCtr  * monteCarloSum;
 
-   std::cout <<"monteCarloSum = " << monteCarloSum << '\n';
+
+   if (verbosity){
+        std::cout <<"monteCarloSum = " << monteCarloSum << '\n';
+        std::cout <<"valMax = " << valMax << '\n';
+        std::cout <<"valMin = " << valMin << '\n';
+        std::cout <<"sampleCtr = " << sampleCtr << '\n';
+   }
 
 
-   return;
+   return monteCarloSum ;
 }
 
 

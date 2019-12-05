@@ -14,7 +14,7 @@ def is_float(string):
 		return False
 
 
-with open('../app/BTrussStochDOFLearn/results.dat','r') as f:
+with open('../app/BTrussStochDOFLearn/resultsTrue.dat','r') as f:
 	reader = f.readlines()
 	for line  in reader:
 		split = line.rstrip().split(" ")
