@@ -54,13 +54,13 @@ int main(){
         //double A = 0.01;
         double disp;
         //TrussFem.modA(1, A1);
-        //double A;
-
-        //double randU = uniform(engine);
-
-        //if( randU > 0.75 ) { A = 0.4; }
-        //else if( randU > 0.25 ){ A = 0.2;}
-        //else{ A = 0.1; }
+//        double A;
+//
+//        double randU = uniform(engine);
+//
+//        if( randU > 0.75 ) { A = 0.4; }
+//        else if( randU > 0.25 ){ A = 0.2;}
+//        else{ A = 0.1; }
 
         TrussFem.modA(0, A);
         TrussFem.assembleS( );
@@ -77,7 +77,7 @@ int main(){
         //std::cout << allSamples(i, 0) << '\n';
 
         TrussFem.FEMClassReset(false);
-        if( (numSamples > 100 * 5 ) && ( i % (numSamples /100)  == 0 ) ){std::cout << "Sample " << i << " Computed" <<'\n';}
+        if( (numSamples > 100 * 5 ) && ( i % (numSamples / ( 20 ) )  == 0 ) ){std::cout << "computed " << i << " samples " <<'\n';}
     }
 
     //myFile.close();
@@ -85,6 +85,12 @@ int main(){
     histBin(allSamples, nBins, true, true);
     //FreqIntergral(allSamples, valMax, valMin);
 
+//    FEMClass DemoT(false);
+//    double A = 0.1;
+//    DemoT.modA(0, A);
+//    DemoT.assembleS( );
+//    DemoT.computeDisp( );
+//    std::cout <<" DemoT disp dof9 = " << DemoT.getDisp(10) << std::endl;
 
     return 0;
 }

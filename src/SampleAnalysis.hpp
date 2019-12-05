@@ -180,6 +180,7 @@ void histBin(const Eigen::MatrixXd& allSamples,int nBins, bool normalized, bool 
         for(int j = 0; j < sortedMappingFreq.size(); ++j){
 
             if( currentS.first[0] > sortedMappingFreq[j].first[0]){
+           // if( currentS.second > sortedMappingFreq[j].second){
 
                 //std::cout << currentS.second << " > " << sortedMappingFreq[j].second << std::endl;
                 sortedMappingFreq.emplace(sortedMappingFreq.begin() + j , currentS );

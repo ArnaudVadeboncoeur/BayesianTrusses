@@ -10,18 +10,53 @@
 
 #include <iostream>
 #include <vector>
+#include <tuple>
 
 #include <Eigen/Dense>
-#include "ThreeDTrussDef OriginalSimpler.hpp"
 
 
+void removeRow(Eigen::MatrixXd& matrix, unsigned int rowToRemove)
+{   //Function to remove a row from Eigen Matrix by reference
+    unsigned int numRows = matrix.rows()-1;
+    unsigned int numCols = matrix.cols();
+
+    if( rowToRemove < numRows )
+        matrix.block(rowToRemove,0,numRows-rowToRemove,numCols) = matrix.block(rowToRemove+1,0,numRows-rowToRemove,numCols);
+
+    matrix.conservativeResize(numRows,numCols);
+
+}
+
+
+void removeColumn(Eigen::MatrixXd& matrix, unsigned int colToRemove)
+{   //Function to remove a column from Eigen Matrix by reference
+    unsigned int numRows = matrix.rows();
+    unsigned int numCols = matrix.cols()-1;
+
+    if( colToRemove < numCols )
+        matrix.block(0,colToRemove,numRows,numCols-colToRemove) = matrix.block(0,colToRemove+1,numRows,numCols-colToRemove);
+
+    matrix.conservativeResize(numRows,numCols);
+}
+
+
+
+
+using TupleTrussDef = std::tuple <  unsigned, unsigned,
+                                    Eigen::VectorXd,
+                                    Eigen::VectorXd,
+                                    Eigen::MatrixXd,
+                                    Eigen::VectorXi,
+                                    Eigen::MatrixXi,
+                                    Eigen::MatrixXi,
+                                    Eigen::MatrixXd  > ;
 
 class FEMClass{
 public:
 
     FEMClass ( ) { };
 
-    FEMClass ( bool ) ;
+    FEMClass ( bool, TupleTrussDef ) ;
 
     void FEMClassReset ( bool );
 
@@ -50,14 +85,16 @@ private:
     bool verbosity_;
 
     //Initialised Variable and containers
+
+    TupleTrussDef TrussDef_;
+
     unsigned numberNodes_ ;
     unsigned numberElms_ ;
 
     Eigen::VectorXd A_ ;
     Eigen::VectorXd E_ ;
-    Eigen::VectorXi dof_ ;
-
     Eigen::MatrixXd nodes_ ;
+    Eigen::VectorXi dof_ ;
     Eigen::MatrixXi members_ ;
     Eigen::MatrixXi memberData_ ;
     Eigen::MatrixXd force_ ;
@@ -85,32 +122,30 @@ private:
 
 };
 
-FEMClass::FEMClass ( bool verbosity ) {
+FEMClass::FEMClass ( bool verbosity, TupleTrussDef TrussDef ) {
 
-    FEMClassReset( verbosity );
+    TrussDef_ = TrussDef;
+    FEMClassReset( verbosity);
+
 
 }
 
 
 
 
-void FEMClass::FEMClassReset( bool verbosity ){
+void FEMClass::FEMClassReset( bool verbosity){
 
     verbosity_ = verbosity;
 
-    InitialTrussAssignment();
+    std::tie (numberNodes_,
+              numberElms_,
+              A_, E_,
+              nodes_,
+              dof_,
+              members_,
+              memberData_,
+              force_) = TrussDef_;
 
-    numberNodes_   = numberNodes;
-    numberElms_    = numberElms;
-
-    A_             = A;
-    E_             = E;
-    dof_           = dof;
-
-    nodes_         = nodes;
-    members_       = members;
-    memberData_    = memberData;
-    force_         = force;
 
     freeDof_.clear();
 
@@ -145,15 +180,15 @@ void FEMClass::assembleS(){
     for(int i =0; i < numberElms_ ; ++i){
             Eigen::MatrixXd Ki(2,2);
 
-            double l = sqrt(   pow(  nodes(members_(i,1), 0) - nodes(members_(i,0), 0)  , 2 )      //x
+            double l = sqrt(   pow(  nodes_(members_(i,1), 0) - nodes_(members_(i,0), 0)  , 2 )      //x
 
-                            +  pow(  nodes(members_(i,1), 1) - nodes(members_(i,0), 1)  , 2 )      //y
+                            +  pow(  nodes_(members_(i,1), 1) - nodes_(members_(i,0), 1)  , 2 )      //y
 
-                            +  pow(  nodes(members_(i,1), 2) - nodes(members_(i,0), 2)  , 2 )   ); //z
+                            +  pow(  nodes_(members_(i,1), 2) - nodes_(members_(i,0), 2)  , 2 )   ); //z
 
-            double cosX =  ( nodes(members_(i,1), 0) - nodes(members_(i,0), 0) ) / l;
-            double cosY =  ( nodes(members_(i,1), 1) - nodes(members_(i,0), 1) ) / l;
-            double cosZ =  ( nodes(members_(i,1), 2) - nodes(members_(i,0), 2) ) / l;
+            double cosX =  ( nodes_(members_(i,1), 0) - nodes_(members_(i,0), 0) ) / l;
+            double cosY =  ( nodes_(members_(i,1), 1) - nodes_(members_(i,0), 1) ) / l;
+            double cosZ =  ( nodes_(members_(i,1), 2) - nodes_(members_(i,0), 2) ) / l;
 
             std::vector<int> dofKi(6);
             for(unsigned ii = 0; ii < dofKi.size(); ++ii ){
@@ -170,7 +205,7 @@ void FEMClass::assembleS(){
             vectorOfT_[i] = T;
 
 
-            vectorOfLocalK_[i] = E_(memberData(i,0)) * A_(memberData(i,1)) / l * baseK_;
+            vectorOfLocalK_[i] = E_(memberData_(i,0)) * A_(memberData_(i,1)) / l * baseK_;
 
             vectorOfK_[i] = T.transpose() * vectorOfLocalK_[i] * T ;
 
@@ -272,6 +307,7 @@ void FEMClass::computeForce( ){
 
 
 }
+
 
 #endif /* FEMClass_HPP_ */
 

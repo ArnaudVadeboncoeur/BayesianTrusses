@@ -3,8 +3,20 @@
 #define DTRUSSDEF_HPP_
 
 #include <Eigen/Dense>
+#include <tuple>
+
+using TupleTrussDef = std::tuple <  unsigned, unsigned,
+                                    Eigen::VectorXd,
+                                    Eigen::VectorXd,
+                                    Eigen::MatrixXd,
+                                    Eigen::VectorXi,
+                                    Eigen::MatrixXi,
+                                    Eigen::MatrixXi,
+                                    Eigen::MatrixXd  > ;
 
 //---------------------define Truss-----------------------//
+
+TupleTrussDef InitialTrussAssignment(){
 
     unsigned numberNodes = 10;
     unsigned numberElms  = 23;
@@ -17,7 +29,6 @@
     Eigen::MatrixXi memberData  (numberElms, 2);
     Eigen::MatrixXd force       (numberNodes * 3, 1);
 
-void InitialTrussAssignment(){
     //Areas
     A <<    0.0025, 0.001; //m^2
 
@@ -132,35 +143,17 @@ void InitialTrussAssignment(){
             0,     0,     0,  //-7
             0,     0,     0,  //-8
             0,     0,     0;  //-9
-    return;
+
+
+    return std::make_tuple( numberNodes,
+                            numberElms,
+                            A, E,
+                            nodes,
+                            dof,
+                            members,
+                            memberData,
+                            force      );
 }
-
-
-
-void removeRow(Eigen::MatrixXd& matrix, unsigned int rowToRemove)
-{   //Function to remove a row from Eigen Matrix by reference
-    unsigned int numRows = matrix.rows()-1;
-    unsigned int numCols = matrix.cols();
-
-    if( rowToRemove < numRows )
-        matrix.block(rowToRemove,0,numRows-rowToRemove,numCols) = matrix.block(rowToRemove+1,0,numRows-rowToRemove,numCols);
-
-    matrix.conservativeResize(numRows,numCols);
-
-}
-
-
-void removeColumn(Eigen::MatrixXd& matrix, unsigned int colToRemove)
-{   //Function to remove a column from Eigen Matrix by reference
-    unsigned int numRows = matrix.rows();
-    unsigned int numCols = matrix.cols()-1;
-
-    if( colToRemove < numCols )
-        matrix.block(0,colToRemove,numRows,numCols-colToRemove) = matrix.block(0,colToRemove+1,numRows,numCols-colToRemove);
-
-    matrix.conservativeResize(numRows,numCols);
-}
-
 
 
 #endif /* DTRUSSDEF_HPP_ */
