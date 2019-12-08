@@ -40,8 +40,6 @@ void removeColumn(Eigen::MatrixXd& matrix, unsigned int colToRemove)
 }
 
 
-
-
 using TupleTrussDef = std::tuple <  unsigned, unsigned,
                                     Eigen::VectorXd,
                                     Eigen::VectorXd,
@@ -68,8 +66,9 @@ public:
 
 
 
-    void modA(int index, double Area)    { A_[index] = Area ;}
-    void modE(int index, double Modulus) { E_[index] = Modulus ;}
+    void modA(int index, double Area)                       { A_[index] = Area ; }
+    void modE(int index, double Modulus)                    { E_[index] = Modulus ; }
+    void modForce( int i_dof, int j_xyz, double forceMod )  { force_(i_dof , j_xyz) = forceMod ; }
 
     double getDisp(int dofIndex)         { return allDisp_[dofIndex] ; }
     Eigen::VectorXd getDisp(   )         { return allDisp_ ; }
@@ -130,9 +129,6 @@ FEMClass::FEMClass ( bool verbosity, TupleTrussDef TrussDef ) {
 
 }
 
-
-
-
 void FEMClass::FEMClassReset( bool verbosity){
 
     verbosity_ = verbosity;
@@ -150,8 +146,8 @@ void FEMClass::FEMClassReset( bool verbosity){
     freeDof_.clear();
 
     //make element wise copy of matrixXd force_ as this one is reduced by reference in code
-      allForce_.resize(force_.size());
-      for(int i = 0; i < force_.size(); ++i){ allForce_[i] = force_( i, 0) ;}
+    allForce_.resize(force_.size());
+    for(int i = 0; i < force_.size(); ++i){ allForce_[i] = force_( i, 0) ;}
 
     vectorOfK_.resize(numberElms_);
     vectorOfLocalK_.resize(numberElms_);
@@ -178,55 +174,55 @@ void FEMClass::assembleS(){
     //---------------------------Compuete all Global K matrices-----------------------------//
 
     for(int i =0; i < numberElms_ ; ++i){
-            Eigen::MatrixXd Ki(2,2);
+        Eigen::MatrixXd Ki(2,2);
 
-            double l = sqrt(   pow(  nodes_(members_(i,1), 0) - nodes_(members_(i,0), 0)  , 2 )      //x
+        double l = sqrt(   pow(  nodes_(members_(i,1), 0) - nodes_(members_(i,0), 0)  , 2 )      //x
 
-                            +  pow(  nodes_(members_(i,1), 1) - nodes_(members_(i,0), 1)  , 2 )      //y
+                        +  pow(  nodes_(members_(i,1), 1) - nodes_(members_(i,0), 1)  , 2 )      //y
 
-                            +  pow(  nodes_(members_(i,1), 2) - nodes_(members_(i,0), 2)  , 2 )   ); //z
+                        +  pow(  nodes_(members_(i,1), 2) - nodes_(members_(i,0), 2)  , 2 )   ); //z
 
-            double cosX =  ( nodes_(members_(i,1), 0) - nodes_(members_(i,0), 0) ) / l;
-            double cosY =  ( nodes_(members_(i,1), 1) - nodes_(members_(i,0), 1) ) / l;
-            double cosZ =  ( nodes_(members_(i,1), 2) - nodes_(members_(i,0), 2) ) / l;
+        double cosX =  ( nodes_(members_(i,1), 0) - nodes_(members_(i,0), 0) ) / l;
+        double cosY =  ( nodes_(members_(i,1), 1) - nodes_(members_(i,0), 1) ) / l;
+        double cosZ =  ( nodes_(members_(i,1), 2) - nodes_(members_(i,0), 2) ) / l;
 
-            std::vector<int> dofKi(6);
-            for(unsigned ii = 0; ii < dofKi.size(); ++ii ){
+        std::vector<int> dofKi(6);
+        for(unsigned ii = 0; ii < dofKi.size(); ++ii ){
 
-                if(ii < 3){ dofKi[ii] = (members_(i,0)) * 3 + ii    ;}
-                else      { dofKi[ii] = (members_(i,1)) * 3 + ii % 3;}
-            }
-            dofKgs_[i] = dofKi;
-
-            Eigen::MatrixXd T (2,6);
-            T << cosX, cosY, cosZ,  0,     0,   0,
-                 0,    0,    0,     cosX, cosY, cosZ;
-
-            vectorOfT_[i] = T;
-
-
-            vectorOfLocalK_[i] = E_(memberData_(i,0)) * A_(memberData_(i,1)) / l * baseK_;
-
-            vectorOfK_[i] = T.transpose() * vectorOfLocalK_[i] * T ;
-
-            if( verbosity_ ) { std::cout <<"Global K"<<i<<"\n"<< vectorOfK_[i] << "\n\n\n"; }
+            if(ii < 3){ dofKi[ii] = (members_(i,0)) * 3 + ii    ;}
+            else      { dofKi[ii] = (members_(i,1)) * 3 + ii % 3;}
         }
+        dofKgs_[i] = dofKi;
+
+        Eigen::MatrixXd T (2,6);
+        T << cosX, cosY, cosZ,  0,     0,   0,
+             0,    0,    0,     cosX, cosY, cosZ;
+
+        vectorOfT_[i] = T;
+
+
+        vectorOfLocalK_[i] = E_(memberData_(i,0)) * A_(memberData_(i,1)) / l * baseK_;
+
+        vectorOfK_[i] = T.transpose() * vectorOfLocalK_[i] * T ;
+
+        if( verbosity_ ) { std::cout <<"Global K"<<i<<"\n"<< vectorOfK_[i] << "\n\n\n"; }
+    }
 
 
 
     //------------------------Assemble Structure Stiffness Matrix ---------------------------//
 
-        for(unsigned kid = 0; kid < numberElms_; ++kid){
+    for(unsigned kid = 0; kid < numberElms_; ++kid){
 
-            for(int i = 0 ; i < 6; ++i){
+        for(int i = 0 ; i < 6; ++i){
 
-                for(int j =0; j < 6; ++j){
+            for(int j =0; j < 6; ++j){
 
-                    S_(dofKgs_[kid][i],dofKgs_[kid][j]) += vectorOfK_[kid](i,j);
-                }
+                S_(dofKgs_[kid][i],dofKgs_[kid][j]) += vectorOfK_[kid](i,j);
             }
-
         }
+
+    }
 
    return;
 
@@ -238,83 +234,76 @@ void FEMClass::computeDisp( ){
 
 
     //remove fixed degrees of freedom
-        for(int i = dof_.size() - 1; i >= 0 ; --i){
+    for(int i = dof_.size() - 1; i >= 0 ; --i){
 
-            if(dof_[i] == 1){
+        if(dof_[i] == 1){
 
-                removeColumn(S_,i);
-                removeRow(S_, i);
-                removeRow(force_, i);
-            }
-            else{ freeDof_.insert(freeDof_.begin(),i);}
+            removeColumn(S_,i);
+            removeRow(S_, i);
+            removeRow(force_, i);
         }
+        else{ freeDof_.insert(freeDof_.begin(),i);}
+    }
 
-       if( verbosity_ ) { std::cout <<"Structure Matrix \n" << S_ << '\n'; }
+    if( verbosity_ ) { std::cout <<"Structure Matrix \n" << S_ << '\n'; }
 
-       if( verbosity_ ) { std::cout <<"Force Applied \n" << force_ << '\n'; }
+    if( verbosity_ ) { std::cout <<"Force Applied \n" << force_ << '\n'; }
 
-       disp_ =  S_.inverse() * force_ ;
+    disp_ =  S_.inverse() * force_ ;
 
 
-       if(verbosity_){
+    if(verbosity_){
 
-           std::cout<<"at degrees of freedom disp is:\n\n";
+    std::cout<<"at degrees of freedom disp is:\n\n";
 
-           for(unsigned i =0; i < freeDof_.size(); ++i){
+    for(unsigned i =0; i < freeDof_.size(); ++i){
 
-               std::cout<<"dof: "<<freeDof_[i]<<'\t'<<"disp = "<<disp_(i)<<'\n';
-           }
-       }
+       std::cout<<"dof: "<<freeDof_[i]<<'\t'<<"disp = "<<disp_(i)<<'\n';
+    }
+    }
 
-          for(int i = 0; i < freeDof_.size(); ++i){
-              for(int j = 0; j < numberNodes_ * 3; ++j){
-              if(freeDof_[i] == j){
-                  allDisp_[j]=disp_[i];
-              }
-              }
-          }
+    for(int i = 0; i < freeDof_.size(); ++i){
+      for(int j = 0; j < numberNodes_ * 3; ++j){
+      if(freeDof_[i] == j){
+          allDisp_[j]=disp_[i];
+      }
+      }
+    }
 
-          if( verbosity_ ) { std::cout <<"allDisp :\n"<< allDisp_ << '\n'; }
+    if( verbosity_ ) { std::cout <<"allDisp :\n"<< allDisp_ << '\n'; }
 
-          if( verbosity_ ) { for(int i =0; i <23; i++){std::cout<<(i+1)*2<<'\n';} }
-}
+    if( verbosity_ ) { for(int i =0; i <23; i++){std::cout<<(i+1)*2<<'\n';} }
+    }
 
 void FEMClass::computeForce( ){
 
     //-------------------------------compute force in members------------------------------//
-       for(int kid =0 ; kid < numberElms_; ++kid){
+    for(int kid =0 ; kid < numberElms_; ++kid){
 
-           //put proper global displacement into member disp v vector
-           Eigen::VectorXd v(6);
-           for(int i = 0; i < freeDof_.size() ; ++i){
-               for(int j = 0; j < 6 ; ++j){
+       //put proper global displacement into member disp v vector
+       Eigen::VectorXd v(6);
+       for(int i = 0; i < freeDof_.size() ; ++i){
+           for(int j = 0; j < 6 ; ++j){
 
-                   if(dofKgs_[kid][j] == freeDof_[i]){
+               if(dofKgs_[kid][j] == freeDof_[i]){
 
-                       v[j] = disp_[i];
-                   }
+                   v[j] = disp_[i];
                }
            }
-
-           vectorOfV_[kid] = v;
-
-           vectorOfU_[kid] = vectorOfT_[kid]      * vectorOfV_[kid];
-           vectorOfQ_[kid] = vectorOfLocalK_[kid] * vectorOfU_[kid];
-
-           if( verbosity_ ){std::cout<< "\n\nQ"<<kid<<" :\n";
-                            std::cout<<vectorOfQ_[kid]<<"\n";}
        }
+
+       vectorOfV_[kid] = v;
+
+       vectorOfU_[kid] = vectorOfT_[kid]      * vectorOfV_[kid];
+       vectorOfQ_[kid] = vectorOfLocalK_[kid] * vectorOfU_[kid];
+
+       if( verbosity_ ){std::cout<< "\n\nQ"<<kid<<" :\n";
+                        std::cout<<vectorOfQ_[kid]<<"\n";}
+    }
 
 
 }
 
 
 #endif /* FEMClass_HPP_ */
-
-
-
-
-
-
-
 

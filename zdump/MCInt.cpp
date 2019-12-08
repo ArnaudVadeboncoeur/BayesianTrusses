@@ -13,10 +13,8 @@
 #include <cmath>
 
 #include "src/FEMClass.hpp"
-#include "src/SampleAnalysis.hpp"
-
-
 #include <Eigen/Dense>
+#include "../src/statTools/SampleAnalysis.hpp"
 
 
 int main(){

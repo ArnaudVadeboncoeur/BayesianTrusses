@@ -15,7 +15,7 @@ CPPFLAGS  = -std=c++11
 CPPFLAGS += $(INCLUDES)
 
 # the final target
-TARGET = Compiled.exe
+TARGET = compiled.exe
 
 # find the sources and object files
 CPPFILES = $(wildcard *.cpp)

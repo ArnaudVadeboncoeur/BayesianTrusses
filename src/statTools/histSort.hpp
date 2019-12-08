@@ -1,67 +1,20 @@
 /*
- * SampleAnalysis.hpp
+ * basicStat.hpp
  *
- *  Created on: 26 Nov 2019
+ *  Created on: 6 Dec 2019
  *      Author: arnaudv
  */
 
-#ifndef SRC_SAMPLEANALYSIS_HPP_
-#define SRC_SAMPLEANALYSIS_HPP_
 
-
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <cmath>
+#ifndef STATTOOLS_HISTSORT_HPP
+#define STATTOOLS_HISTSORT_HPP
 
 #include <Eigen/Dense>
 
-
-double MonteCarloAvgs(const Eigen::MatrixXd& allSamples){
-    //Computes Average over range
-   double upperBound =  1e10;
-   double lowerBound = -1e10;
-   double valMax = 0;
-   double valMin = 0;
-   int sampleCtr = 0;
-   double monteCarloSum  = 0;
-   int index = 0;
-   bool verbosity = false;
-
-   for( unsigned i = 0; i < allSamples.rows(); ++i ){
-
-       if( (allSamples(i, index) > lowerBound) || (allSamples(i, index) < upperBound) ){
-
-           if( allSamples(i, index) > valMax )   {
-               valMax = allSamples(i, index);
-           }
-           if(allSamples(i, index) < valMin) {
-               valMin = allSamples(i, index);
-           }
-
-           monteCarloSum += allSamples(i, index);
-
-           sampleCtr ++ ;
-       }
-   }
-
-
-   monteCarloSum = (valMax - valMin)  *  (double) 1 / sampleCtr  * monteCarloSum;
-
-
-   if (verbosity){
-        std::cout <<"monteCarloSum = " << monteCarloSum << '\n';
-        std::cout <<"valMax = " << valMax << '\n';
-        std::cout <<"valMin = " << valMin << '\n';
-        std::cout <<"sampleCtr = " << sampleCtr << '\n';
-   }
-
-
-   return monteCarloSum ;
-}
-
-
-
+#include <cmath>
+#include <iostream>
+#include <fstream>
+#include <vector>
 
 
 double snap(double y, double precision){
@@ -88,14 +41,9 @@ double snap(double y, double precision){
 
 
 
+std::vector<double> findDeltaX (const Eigen::MatrixXd& allSamples, int nBins ){
 
-void histBin(const Eigen::MatrixXd& allSamples,int nBins, bool normalized, bool output){
-
-    std::vector< std::pair < Eigen::VectorXd , double> >  snapMappingFreq;
-
-
-    std::vector< Eigen::VectorXd > snapMap (allSamples.rows()) ;
-    Eigen::VectorXd mapping ( allSamples.cols() );
+    std::vector<double > deltaXs ( allSamples.cols() );
 
     Eigen::VectorXd valsMax ( allSamples.cols() );
     Eigen::VectorXd valsMin ( allSamples.cols() );
@@ -104,8 +52,6 @@ void histBin(const Eigen::MatrixXd& allSamples,int nBins, bool normalized, bool 
         valsMax[i] = -1e9;
         valsMin[i] = +1e9;
     }
-
-    Eigen::VectorXd deltaXs ( allSamples.cols() );
 
     for(unsigned     j = 0; j < allSamples.cols() ; ++j){
         for(unsigned i = 0; i < allSamples.rows() ; ++i){
@@ -118,13 +64,28 @@ void histBin(const Eigen::MatrixXd& allSamples,int nBins, bool normalized, bool 
     for(unsigned i = 0; i < deltaXs.size(); ++i ){
 
         deltaXs[i] =  abs(  (double) ((valsMax[i] - valsMin[i]) / nBins ) );
-//        std::cout << deltaXs[i] << std::endl;
-//        std::cout << valsMax[i] << std::endl;
-//        std::cout << valsMin[i] << std::endl;
 
     }
 
-    std::cout << "\n\nSnaping\n";
+    return deltaXs;
+}
+
+
+using HistContainer = std::vector< std::pair < Eigen::VectorXd , double> >;
+
+HistContainer histBin(const Eigen::MatrixXd& allSamples,
+             const std::vector<double>& deltaXs,
+             bool normalized, bool output){
+
+    HistContainer  snapMappingFreq;
+
+
+    std::vector< Eigen::VectorXd > snapMap (allSamples.rows()) ;
+    Eigen::VectorXd mapping ( allSamples.cols() );
+
+
+    if(output) { std::cout << "\n\nSnaping\n"; }
+
     for(unsigned i = 0; i < allSamples.rows(); ++i){
 
         for(unsigned int j = 0; j < allSamples.cols() ; ++j){
@@ -134,7 +95,7 @@ void histBin(const Eigen::MatrixXd& allSamples,int nBins, bool normalized, bool 
         snapMap[i] = mapping;
     }
 
-    std::cout << "\n\nCounting Frequency\n";
+    if(output) { std::cout << "\n\nCounting Frequency\n";}
     Eigen::VectorXd current;
     for(unsigned i = 0; i < snapMap.size(); ++i){
         current = snapMap[i];
@@ -170,9 +131,10 @@ void histBin(const Eigen::MatrixXd& allSamples,int nBins, bool normalized, bool 
 
     }
 
-    std::cout << "\n\nSorting by first Dimension\n";
+    if(output) { std::cout << "\n\nSorting by first Dimension\n";}
+
     //std::vector< std::pair < Eigen::VectorXd , double> >
-    std::vector< std::pair < Eigen::VectorXd , double> >  sortedMappingFreq ( 1 );
+    HistContainer  sortedMappingFreq ( 1 );
     sortedMappingFreq[0] = snapMappingFreq[0];
 
     std::pair< Eigen::VectorXd, double> currentS;
@@ -211,39 +173,10 @@ void histBin(const Eigen::MatrixXd& allSamples,int nBins, bool normalized, bool 
         }
         myFile.close();
     }
-    return;
+
+
+
+    return sortedMappingFreq ;
 }
-
-
-
-
-
-
-void FreqIntergral (const Eigen::MatrixXd& allSamples, const double& valMax, const double& valMin) {
-
-    std::cout << "valMax = " << valMax << "\tvalMin = " << valMin << '\n';
-    Eigen::VectorXd lower ( allSamples.cols() ); lower << valMin;
-    Eigen::VectorXd upper ( allSamples.cols() ); upper << (valMax + valMin) / 2.0;
-
-    double freqInterg = 0;
-    std::cout << allSamples.rows() << std::endl;
-    for(unsigned i = 0; i < allSamples.rows(); ++i){
-        for(unsigned j = 0; j < allSamples.cols(); ++j){
-
-            if( (allSamples(i, j) > lower[j] ) && (allSamples(i, j) < upper[j]) ){
-                freqInterg ++;
-            }
-
-        }
-
-    }
-    freqInterg = (double) freqInterg / ( allSamples.rows() * allSamples.cols() );
-    std::cout << "Frequency Intergral = " << freqInterg << std::endl;
-
-
-    return ;
-}
-
-
 
 #endif
