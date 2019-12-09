@@ -12,7 +12,7 @@
 #include "../../src/statTools/KLDiv.hpp"
 #include "../../src/statTools/SteinDiscrepancy.hpp"
 
-#include "ThreeDTrussDef.hpp"
+#include "ThreeDTruss3Bar.hpp"
 
 
 #include <Eigen/Dense>
@@ -27,7 +27,7 @@
 
 Eigen::MatrixXd trueSampleGen(){
     bool verbosity = false;
-    double mu  = 10;
+    double mu  = 1;
     double sig = 0.25;
 
 
@@ -35,7 +35,7 @@ Eigen::MatrixXd trueSampleGen(){
     std::random_device rd;
     std::mt19937 engine( rd() );
 
-    int numSamples =  1e2;//1e3;
+    int numSamples =  1e4;//1e3;
 
     Eigen::MatrixXd allSamples (numSamples, 1);
 
@@ -149,7 +149,7 @@ int main(){
 
     std::random_device rd;
 
-    unsigned loops = 200;
+    unsigned loops = 30;
     double muCurr  = 0;
     double sig = 0.25;
 
@@ -212,7 +212,7 @@ int main(){
 
     std::vector<double>  delatXs = findDeltaX(ModelSamplesCurr, 100);
     int nBins = 100;
-    HistContainer histPoints = histBin(ModelSamplesCurr, delatXs, true, false);
+    HistContainer histPoints = histBin(ModelSamplesCurr, delatXs, true, true);
 
 
     return 0;

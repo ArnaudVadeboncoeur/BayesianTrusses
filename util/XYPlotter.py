@@ -14,7 +14,7 @@ def is_float(string):
 		return False
 
 
-with open('../app/BTrussStochDOFLearn/resultsTrue.dat','r') as f:
+with open('../app/BTrussStochDOFLearn/results.dat','r') as f:
 	reader = f.readlines()
 	for line  in reader:
 		split = line.rstrip().split(" ")
@@ -57,7 +57,7 @@ if(ndim ==2 ):
     #matplotlib.pyplot.scatter(x, y, s=20, c='b', marker='o', cmap=None, norm=None,
     #vmin=None, vmax=None, alpha=None, linewidths=None,
     #faceted=True, verts=None, hold=None, **kwargs)
-    plt.title("Frequency of Displacment DOF9-lognormal member area")
+    plt.title("Frequency of Displacment")
     plt.savefig("FreqDisp.png")
     plt.show()
 	
