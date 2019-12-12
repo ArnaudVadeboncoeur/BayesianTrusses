@@ -14,6 +14,9 @@
 
 
 double steinDisc(Eigen::MatrixXd& trueSamples, Eigen::MatrixXd& ModelSamples){
+
+    //Not proper, equation not well interpreted.
+
     double sdm = 0;
 
     for(unsigned i = 0; i<trueSamples.rows(); ++i){

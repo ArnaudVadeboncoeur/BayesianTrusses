@@ -68,7 +68,7 @@ public:
 
     void modA(int index, double Area)                       { A_[index] = Area ; }
     void modE(int index, double Modulus)                    { E_[index] = Modulus ; }
-    void modForce( int i_dof, int j_xyz, double forceMod )  { force_(i_dof , j_xyz) = forceMod ; }
+    void modForce( int i_dof, int j_xyz, double forceMod )  { force_(i_dof * 3 + j_xyz, 0) = forceMod ; }
 
     double getDisp(int dofIndex)         { return allDisp_[dofIndex] ; }
     Eigen::VectorXd getDisp(   )         { return allDisp_ ; }

@@ -23,7 +23,7 @@ TupleTrussDef InitialTrussAssignment(){
     unsigned numberNodes = 4;
     unsigned numberElms  = 3;
 
-    Eigen::VectorXd A(2);
+    Eigen::VectorXd A(3);
     Eigen::VectorXd E(1);
     Eigen::MatrixXd nodes       (numberNodes, 3);
     Eigen::VectorXi dof         (numberNodes * 3);
@@ -32,7 +32,7 @@ TupleTrussDef InitialTrussAssignment(){
     Eigen::MatrixXd force       (numberNodes * 3, 1);
 
     //Areas
-    A << 0.0025, 0.0025; //m^2
+    A << 0.0025, 0.0025, 0.0025; //m^2
 
     //Modulus of Elasticity
     E << 2e8; // N/m^2
@@ -58,8 +58,8 @@ TupleTrussDef InitialTrussAssignment(){
     //Material Type;
                 //E, A
     memberData << 0, 0,
-                  0, 0,
-                  0, 1;
+                  0, 1,
+                  0, 2;
     //force applied at degree of freedom
     force << 0,    0,    0,//    node 0 x,y,z
              0,    0,    0,//    node 1 x,y,z

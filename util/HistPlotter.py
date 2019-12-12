@@ -14,16 +14,16 @@ def is_float(string):
 		return False
 
 
-with open('../results.dat','r') as f:
+with open('/home/arnaudv/git/BayesianTrusses/app/BTrussMCMC_MH/results.dat','r') as f:
 	reader = f.readlines()
 	for line  in reader:
 		split = line.rstrip().split(" ")
 		data.append([float(line) if is_float(line) else line  for line in split ])
-data = np.array(data, dtype = 'O')
+data = np.array(data, dtype = float)
 print(data)
 
 try:
-	columns = len(data[0]) - 1 
+	columns = len(data[0]) - 1
 except:
 	columns =1
 
@@ -37,7 +37,7 @@ if( ndim == 1):
 	#	 cumulative=False, bottom=None, histtype='step', align='mid',
 	#	 orientation='vertical', rwidth=None, log=False, color=None,
 	#	 label=None, stacked=False)
-	histogram = sns.distplot(data[:,1],bins=None, hist=True, kde=True, rug=False,
+	histogram = sns.distplot(data[:,0],bins=None, hist=True, kde=True, rug=False,
 				 fit=None, hist_kws=None, kde_kws=None, rug_kws=None,
 				 fit_kws=None, color=None, vertical=False, norm_hist=True,
 				 axlabel=None, label=None, ax=None)	
