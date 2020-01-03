@@ -58,13 +58,13 @@ TupleTrussDef InitialTrussAssignment(){
     //Material Type;
                 //E, A
     memberData << 0, 0,
-                  0, 1,
-                  0, 2;
+                  0, 0,
+                  0, 0;
     //force applied at degree of freedom
     force << 0,    0,    0,//    node 0 x,y,z
              0,    0,    0,//    node 1 x,y,z
              0,    0,    0,//    node 2 x,y,z
-             0,    -100, 0;//    node 3 x,y,z
+             0,    -1000,0;//    node 3 x,y,z
 
     return std::make_tuple( numberNodes,
                                numberElms,

@@ -13,8 +13,8 @@ def is_float(string):
 	except ValueError:
 		return False
 
-
-with open('/home/arnaudv/git/BayesianTrusses/app/BTrussMCMC_MH/results.dat','r') as f:
+fileLoc = input("input file path: ")
+with open(fileLoc,'r') as f:
 	reader = f.readlines()
 	for line  in reader:
 		split = line.rstrip().split(" ")
@@ -23,7 +23,7 @@ data = np.array(data, dtype = float)
 print(data)
 
 try:
-	columns = len(data[0]) - 1
+	columns = len(data[0])
 except:
 	columns =1
 
@@ -31,21 +31,22 @@ ndim = columns
 print("ndim = ", ndim)
 
 
-if( ndim == 1): 
+#if( ndim == 1): 
 	
-	#plt.hist(data, bins=50, range=None, density=True, weights=None,
-	#	 cumulative=False, bottom=None, histtype='step', align='mid',
-	#	 orientation='vertical', rwidth=None, log=False, color=None,
-	#	 label=None, stacked=False)
-	histogram = sns.distplot(data[:,0],bins=None, hist=True, kde=True, rug=False,
-				 fit=None, hist_kws=None, kde_kws=None, rug_kws=None,
-				 fit_kws=None, color=None, vertical=False, norm_hist=True,
-				 axlabel=None, label=None, ax=None)	
-	plt.title('A vs Disp')
-	plt.savefig('AvsDof.png')
-	plt.show()
-	plt.close()
+#plt.hist(data, bins=50, range=None, density=True, weights=None,
+#	 cumulative=False, bottom=None, histtype='step', align='mid',
+#	 orientation='vertical', rwidth=None, log=False, color=None,
+#	 label=None, stacked=False)
+histogram = sns.distplot(data[:,0],bins=None, hist=True, kde=True, rug=False,
+			 fit=None, hist_kws=None, kde_kws=None, rug_kws=None,
+			 fit_kws=None, color=None, vertical=False, norm_hist=True,
+			 axlabel=None, label=None, ax=None)	
+#plt.title('A vs Disp')
+plt.savefig('AvsDof.png')
+plt.show()
+plt.close()
 
+ndim =1
 if(ndim >=2 ):
 
 	randInt1=0
@@ -66,7 +67,7 @@ if(ndim >=2 ):
 	#print("Number of Dimensions is 2!")
 
 	sns.jointplot(x="x", y="y", data=df, kind="kde")
-	plt.title("A vs Disp")
+	#plt.title("A vs Disp")
 	plt.savefig("A vs Disp.png")
 	plt.show()
 	

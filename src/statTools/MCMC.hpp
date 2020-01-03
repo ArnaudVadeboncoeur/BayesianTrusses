@@ -197,7 +197,7 @@ void MCMC<DIM,FUNC,ARG>::sample( unsigned nSamples ){
 	//currently only support metropolis.
     rejectedNum_ = 0;
 	acceptanceRatio_ = 0;
-	valMax_			 = -9e9;
+	valMax_			 = -9e30;
 
 	std::vector< std::pair<ARG, double> > emptyAcceptedCandidates ( 0 );
 	acceptedCandidates_ 				= emptyAcceptedCandidates;
@@ -226,15 +226,9 @@ void MCMC<DIM,FUNC,ARG>::sample( unsigned nSamples ){
 
     if( classVerbosity_ ) { std::cout << "Entering sample Metropolis loop" << std::endl;}
 
+    yCurr = func_( x_ );
+
     for( ; acceptedCandidates_.size() < nSamples && totalPoints < maxPoints; totalPoints++ ){
-
-            yCurr = func_( x_ );
-        //Mod 14Nov2019
-        //	if( yCurr < 0 ){
-
-        //	    std::cout << "\n\nError: x_ current is in negative domain" << "\n\n";
-        //	    exit(0);
-        //	}
 
             xProp = transitionKernel_();
 
@@ -244,24 +238,26 @@ void MCMC<DIM,FUNC,ARG>::sample( unsigned nSamples ){
 
                 if( xProp[i] < argBounds_.first[i] || xProp[i] > argBounds_.second[i] ){
 
-                    yProp = 0;
+                    yProp = -9e30;
                     break;
                 }
             }
-            //Mod 14 Nov 2019
-            //if( yProp < 0 ){
 
-           //    std::cout << "Proposed values is nagative, set boudaries" << '\n';
-           //     exit(0);
-           // }
-            //Mod 14 Nov 2019
-            //Ratio   = std::min( 0.0 , log( yProp ) - log( yCurr ) );
             Ratio   = std::min( 0.0 ,  yProp  -  yCurr  );
-            randNum = log( uniformDistribution( engine ) + (double) 1e-6);
+            //std::cout << Ratio << std::endl;
+            //f(Ratio != 0.0) { std::cout << Ratio << std::endl;}
 
-            if( Ratio > randNum ){
 
-                x_ = xProp;
+            //Ratio   = std::min( 1.0, yProp / yCurr );
+            //randNum = log( uniformDistribution( engine ) + (double) 1e-6);
+            randNum = uniformDistribution( engine ) ;
+
+          //if( Ratio > randNum ){
+          //if( randNum < Ratio ){
+          if( std::log(randNum) < Ratio ){
+
+                x_      = xProp;
+                yCurr   = yProp;
 
                 if ( yProp > valMax_ ){
                         valMax_ = yProp;

@@ -13,8 +13,8 @@ def is_float(string):
 	except ValueError:
 		return False
 
-
-with open('../app/BTrussStochDOFLearn/results.dat','r') as f:
+myFile = input("input file Path: ")
+with open(myFile,'r') as f:
 	reader = f.readlines()
 	for line  in reader:
 		split = line.rstrip().split(" ")
@@ -31,19 +31,20 @@ except:
 ndim = columns
 print("ndim = ", ndim)
 
-
+ndim = 1
 if( ndim == 1): 
 	
 	#plt.hist(data, bins=50, range=None, density=True, weights=None,
 	#	 cumulative=False, bottom=None, histtype='step', align='mid',
 	#	 orientation='vertical', rwidth=None, log=False, color=None,
 	#	 label=None, stacked=False)
-	histogram = sns.distplot(data[:,0],bins=None, hist=True, kde=True, rug=False,
-				 fit=None, hist_kws=None, kde_kws=None, rug_kws=None,
-				 fit_kws=None, color=None, vertical=False, norm_hist=True,
-				 axlabel=None, label=None, ax=None)	
-	plt.title('A vs Disp')
-	plt.savefig('AvsDof.png')
+	#histogram = sns.distplot(data[:,0],bins=None, hist=True, kde=True, rug=False,
+	#			 fit=None, hist_kws=None, kde_kws=None, rug_kws=None,
+	#			 fit_kws=None, color=None, vertical=False, norm_hist=True,
+	#			 axlabel=None, label=None, ax=None)
+	plt.plot(data[:,0])	
+	#plt.title('A as that vs iters')
+	plt.savefig('AvsIterMH.png')
 	plt.show()
 	plt.close()
 
@@ -51,13 +52,21 @@ if(ndim ==2 ):
 	
     #data = np.array(data[:,:], dtype=[('x', float), ('y', float)])
     #data.sort(axis=0)
-    print(data)
+    
     #plt.scatter(data[:,0], data[:,1], s=5)
-    plt.plot(data[:,0], data[:,1])
+    data[:,1] = data[:,1];
+    print(data)
+    Data = pd.DataFrame(data)
+    Data.drop( Data[Data[1] < -4.0e-05].index,inplace = True) 
+    print(Data)
+    plt.scatter(Data[0], np.exp(Data[1].values) ** 10000 )
+    Data.to_csv('filterData.csv')
+   # df.drop(df[df['Age'] < 25].index, inplace = True) 
+    #plt.scatter(data[:,0], data[:,1])
     #matplotlib.pyplot.scatter(x, y, s=20, c='b', marker='o', cmap=None, norm=None,
     #vmin=None, vmax=None, alpha=None, linewidths=None,
     #faceted=True, verts=None, hold=None, **kwargs)
-    plt.title("Frequency of Displacment")
+    #plt.title("Frequency of Displacment")
     plt.savefig("FreqDisp.png")
     plt.show()
 	
