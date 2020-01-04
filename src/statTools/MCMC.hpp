@@ -215,8 +215,8 @@ void MCMC<DIM,FUNC,ARG>::sample( unsigned nSamples ){
 
 	ARG xProp( DIM );
 
-	//defining max points as a very low acceptance ratio of 5%
-	const unsigned maxPoints = ceil( nSamples * 1.0 / 0.05 );
+	//defining max points as a very low acceptance ratio of 10%
+	const unsigned maxPoints = ceil( nSamples * 1.0 / 0.1 );
 
 
 

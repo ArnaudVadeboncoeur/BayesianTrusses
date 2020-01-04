@@ -33,14 +33,15 @@ print("ndim = ", ndim)
 
 #if( ndim == 1): 
 	
-#plt.hist(data, bins=50, range=None, density=True, weights=None,
+#plt.hist(data[:,0], bins=50, range=None, density=True, weights=None,
 #	 cumulative=False, bottom=None, histtype='step', align='mid',
 #	 orientation='vertical', rwidth=None, log=False, color=None,
 #	 label=None, stacked=False)
-histogram = sns.distplot(data[:,0],bins=None, hist=True, kde=True, rug=False,
-			 fit=None, hist_kws=None, kde_kws=None, rug_kws=None,
-			 fit_kws=None, color=None, vertical=False, norm_hist=True,
-			 axlabel=None, label=None, ax=None)	
+#histogram = sns.distplot(data[:,0],bins=None, hist=True, kde=True, rug=False,
+#			 fit=None, hist_kws=None, kde_kws=None, rug_kws=None,
+#			 fit_kws=None, color=None, vertical=False, norm_hist=True,
+#			 axlabel=None, label=None, ax=None)
+histogram = sns.distplot(data[:,0])	
 #plt.title('A vs Disp')
 plt.savefig('AvsDof.png')
 plt.show()
