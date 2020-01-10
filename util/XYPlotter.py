@@ -13,7 +13,13 @@ def is_float(string):
 	except ValueError:
 		return False
 
+
 myFile = input("input file Path: ")
+print("positive int for column to plot 1D")
+print("-1 to exit")
+print("-2 for multi-D mode")
+
+
 with open(myFile,'r') as f:
 	reader = f.readlines()
 	for line  in reader:
@@ -33,20 +39,21 @@ print("ndim = ", ndim)
 
 ndim = 1
 if( ndim == 1): 
+	dimPlot = int( input("input Dim to plot : ") )
+	while( dimPlot >= 0 ):
 	
-	#plt.hist(data, bins=50, range=None, density=True, weights=None,
-	#	 cumulative=False, bottom=None, histtype='step', align='mid',
-	#	 orientation='vertical', rwidth=None, log=False, color=None,
-	#	 label=None, stacked=False)
-	#histogram = sns.distplot(data[:,0],bins=None, hist=True, kde=True, rug=False,
-	#			 fit=None, hist_kws=None, kde_kws=None, rug_kws=None,
-	#			 fit_kws=None, color=None, vertical=False, norm_hist=True,
-	#			 axlabel=None, label=None, ax=None)
-	plt.plot(data[:,0])	
-	#plt.title('A as that vs iters')
-	plt.savefig('AvsIterMH.png')
-	plt.show()
-	plt.close()
+		plt.plot(data[:,dimPlot])	
+		plt.savefig( 'Dim{}-Row.png'.format(dimPlot) )
+		plt.show()
+		plt.close()
+		dimPlot = int( input("input Dim to plot : ") )
+	if(dimPlot == -2):
+		dimPlot1 = int( input("input Dim to plot : ") )
+		dimPlot2 = int( input("input Dim to plot : ") )
+		plt.plot(data[:,dimPlot1],data[:,dimPlot2] )	
+		plt.savefig('Dim{0} - Dim{1}.png'.format( dimPlot1, dimPlot2 ) )
+		plt.show()
+		plt.close()
 
 if(ndim ==2 ):
 	
