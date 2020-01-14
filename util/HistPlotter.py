@@ -20,55 +20,49 @@ with open(fileLoc,'r') as f:
 		split = line.rstrip().split(" ")
 		data.append([float(line) if is_float(line) else line  for line in split ])
 data = np.array(data, dtype = float)
-print(data)
 
 try:
 	columns = len(data[0]) - 1
 except:
-	columns =1
+	columns = 1
 
 ndim = columns
 print("ndim = ", ndim)
 
+dimPlot = int( input("input Dim to plot: ") )
+while( dimPlot >= 0 ):	
 
-if( ndim == 1): 
-	
-	plt.hist(data[:,0], bins=50, range=None, density=True, weights=None,
-	cumulative=False, bottom=None, histtype='step', align='mid',
-	orientation='vertical', rwidth=None, log=False, color=None,
-	label=None, stacked=False)
-	#histogram = sns.distplot(data[:,0],bins=None, hist=True, kde=True, rug=False,
-	#			 fit=None, hist_kws=None, kde_kws=None, rug_kws=None,
-	#			 fit_kws=None, color=None, vertical=False, norm_hist=True,
-	#			 axlabel=None, label=None, ax=None)
-	histogram = sns.distplot(data[:,0])	
-	#plt.title('A vs Disp')
-	plt.savefig('AvsDof.png')
-	plt.show()
-	plt.close()
+    #plt.hist(data[:,0], bins=50, range=None, density=True, weights=None,
+    #cumulative=False, bottom=None, histtype='step', align='mid',
+    #orientation='vertical', rwidth=None, log=False, color=None,
+    #label=None, stacked=False)
 
-#ndim =1
-if(ndim >=2 ):
+    #histogram = sns.distplot(data[:,0],bins=None, hist=True, kde=True, rug=False,
+    #			 fit=None, hist_kws=None, kde_kws=None, rug_kws=None,
+    #			 fit_kws=None, color=None, vertical=False, norm_hist=True,
+    #			 axlabel=None, label=None, ax=None)
+    
+    histogram = sns.distplot(data[:,dimPlot])	
+    #plt.title('A vs Disp')
+    plt.savefig('AvsDof.png')
+    plt.show()
+    plt.close()
+    dimPlot = int(input("input dim to plot: ") )
 
-	randInt1=0
-	randInt2=1
-	
-	if(ndim >2):
-		seed( time.time() % 100)
-		randInt1 = 0
-		randInt2 = 0
-		while(randInt1 == randInt2):
-			randInt1 = randint(0, ndim-1)
-			randInt2 = randint(0, ndim-1)
-		if(randInt1 == ndim or randInt1==ndim):
-			print("Plotting y as one of the axes!")	
-	print("Plotting dimension numbers {0} and {1}".format(randInt1,randInt2))
-	df = pd.DataFrame(data[:, [randInt1,randInt2] ], columns=["x", "y"])
-	data = None
-	#print("Number of Dimensions is 2!")
+more = 'y'
+if(dimPlot == -2):
+    while(more == 'y'):
+        dim1 = int(input("input dimension 1: ") )
+        dim2 = int(input("input dimension 2: ") )
 
-	sns.jointplot(x="x", y="y", data=df, kind="kde")
-	#plt.title("A vs Disp")
-	plt.savefig("A vs Disp.png")
-	plt.show()
-	
+        print("Plotting dimension numbers {0} and {1}".format( dim1,dim2 ))
+        df = pd.DataFrame(data[:, [dim1,dim2] ], columns=["x", "y"])
+        data = None
+        #print("Number of Dimensions is 2!")
+
+        sns.jointplot(x="x", y="y", data=df, kind="kde")
+        #plt.title("A vs Disp")
+        plt.savefig("A vs Disp.png")
+        plt.show()
+        more = input("continue? y/n: ")
+
