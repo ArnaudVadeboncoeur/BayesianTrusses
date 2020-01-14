@@ -42,18 +42,22 @@ if( ndim == 1):
 	dimPlot = int( input("input Dim to plot : ") )
 	while( dimPlot >= 0 ):
 	
-		plt.plot(data[:,dimPlot])	
-		plt.savefig( 'Dim{}-Row.png'.format(dimPlot) )
-		plt.show()
-		plt.close()
-		dimPlot = int( input("input Dim to plot : ") )
-	if(dimPlot == -2):
-		dimPlot1 = int( input("input Dim to plot : ") )
-		dimPlot2 = int( input("input Dim to plot : ") )
-		plt.plot(data[:,dimPlot1],data[:,dimPlot2] )	
-		plt.savefig('Dim{0} - Dim{1}.png'.format( dimPlot1, dimPlot2 ) )
-		plt.show()
-		plt.close()
+	    plt.plot(data[:,dimPlot])	
+	    plt.savefig( 'Dim{}-Row.png'.format(dimPlot) )
+	    plt.show()
+	    plt.close()
+	    dimPlot = int( input("input Dim to plot : ") )
+
+more = 'y'
+if(dimPlot == -2):
+	while(more == 'y'):
+	    dimPlot1 = int( input("input Dim to plot : ") )
+	    dimPlot2 = int( input("input Dim to plot : ") )
+	    plt.plot(data[:,dimPlot1],data[:,dimPlot2] )	
+	    plt.savefig('Dim{0} - Dim{1}.png'.format( dimPlot1, dimPlot2 ) )
+	    plt.show()
+	    plt.close()
+	    more = input("continue? y/n: ")
 
 if(ndim ==2 ):
 	
