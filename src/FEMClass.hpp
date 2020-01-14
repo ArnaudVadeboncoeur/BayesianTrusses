@@ -76,6 +76,8 @@ public:
     double getForce(int dofIndex)        { return allForce_[dofIndex] ; }
     Eigen::VectorXd getForce(   )        { return allForce_ ; }
 
+    double getA(int memberIndex )        { return A_( memberIndex ); }
+    Eigen::VectorXd getA (   )           {return A_; }
 
     ~FEMClass ( ) { };
 

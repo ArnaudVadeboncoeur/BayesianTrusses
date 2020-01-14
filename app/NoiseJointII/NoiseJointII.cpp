@@ -28,20 +28,11 @@
 
 std::tuple<Eigen::MatrixXd, std::vector<double> > trueSampleGen(){
     bool verbosity = false;
-//    double mu1  = 1;
-//    double sig1 = 0.25;
-//
-//    double mu2  = 1;
-//    double sig2 = 0.25;
 
     std::ofstream myTrueFile;
     myTrueFile.open("trueResults.dat", std::ios::trunc);
 
-    //std::lognormal_distribution<double> lognormal1( mu1, sig1  );
-
-    //std::lognormal_distribution<double> lognormal2( -3.688, 1  );
-
-    std::normal_distribution<double> normal( 0, 0.0001 );
+    std::normal_distribution<double> normal(0., 0.005);
 
     std::random_device rd;
     std::mt19937 engine( rd() );
@@ -60,21 +51,21 @@ std::tuple<Eigen::MatrixXd, std::vector<double> > trueSampleGen(){
     for(int i = 0; i < numSamples ; i++){
 
         double A1 = 0.05 + normal( engine ) ;
-       // double A1 = lognormal2( engine );
+        double A2 = 0.025  + normal( engine );
+
         trueTrussFem.modA(0, A1);
+        trueTrussFem.modA(1, A2);
 
         trueTrussFem.assembleS( );
         trueTrussFem.computeDisp( );
         trueTrussFem.computeForce( );
         allSamples(i, 0) = trueTrussFem.getDisp(10) ;
 
-        myTrueFile << A1 << '\n';
+        myTrueFile << trueTrussFem.getA(0) << " " << trueTrussFem.getA(1) << '\n';
 
         trueTrussFem.FEMClassReset(false);
         if( verbosity == true){if( (numSamples > 100 * 5 ) && ( i % (numSamples / ( 20 ) )  == 0 ) ){std::cout << "computed " << i << " samples " <<'\n';}}
     }
-    //std::vector<double>  delatXs = findDeltaX(allSamples, 100);
-    //HistContainer histPoints = histBin(allSamples, delatXs, true, true);
 
     myTrueFile.close();
 
@@ -87,8 +78,14 @@ int main(){
     std::tuple<Eigen::MatrixXd, std::vector<double> > trueSamples = trueSampleGen();
     Eigen::MatrixXd trueSampleDisp = std::get<0>( trueSamples );
 
+    std::ofstream myTrueDispFile;
+    myTrueDispFile.open("trueDispResults.dat", std::ios::trunc);
+    for(int i = 0; i < trueSampleDisp.rows(); ++i){
+    myTrueDispFile << trueSampleDisp(i,0) << std::endl;
+    }
+    myTrueDispFile.close();
 
-    //compute impirical mean and sigma
+    //compute empirical mean and sigma
 
     double empMean = 0;
     for(unsigned i = 0; i < trueSampleDisp.rows(); ++i){
@@ -107,100 +104,87 @@ int main(){
     using Vec = std::vector<double>;
     using Func = std::function <double(Vec)>;
 
-    constexpr unsigned Dim = 1;
+    constexpr unsigned Dim = 3;
 
-    //make log likelihood function sampling work
-//    Func pdf = [] ( Vec x) {
-//
-//        double lik = std::log( (- x[0] * x[0] + 3 ) );
-//
-//        if( std::isnan(lik) ){
-//            lik = -9e30;
-//        }
-//
-//        //std::cout << lik << std::endl;
-//        return lik; };
 
 
     Func pdf = [trueSampleDisp, empSigma]( Vec x ){
 
-        //std::ofstream ALikFile;
-        //ALikFile.open("AandLik.dat", std::ios::app);
-
-        if( x[0] <= 0 ){ return -9e30;}
+        for( int i = 0; i < x.size(); ++i){
+        if( x[i] <= 0 ){ return -9e30;}
+        }
 
         TupleTrussDef MTrussDef;
         MTrussDef = InitialTrussAssignment( );
         FEMClass MTrussFem( false, MTrussDef );
+
         MTrussFem.modA( 0, x[0] );
+        MTrussFem.modA( 1, x[1] );
+
         MTrussFem.assembleS( );
         MTrussFem.computeDisp( );
         double Mdisp = MTrussFem.getDisp( 10 ) ;
 
         double logLik = 0;
 
-       // logLik += - (double) trueSampleDisp.rows() / 2.0 * ( log ( 2.0 * M_PI) + log( 1.0 ) );
+        logLik += - (double) trueSampleDisp.rows() / 2.0 *  log ( 2.0 * M_PI) - (double) trueSampleDisp.rows()*log( x[2] ) ;
 
         double trueAvgDisp = 0;
 
         for(int i = 0; i < trueSampleDisp.rows(); ++i){
 
-            logLik += - 1.0 / 2.0 * pow( ( (trueSampleDisp(i,0) - Mdisp) / 0.0001  ), 2) ;//0.0054 ;0.00054 worked shapr peak
-            //--logLik = logLik * 1.0 / ( std::sqrt( 2.0 * M_PI ) * 1.0) * exp(- 1.0 / 2.0 * pow( ( trueSampleDisp(i,0) - Mdisp ), 2) / 1.0 );
-            trueAvgDisp +=  trueSampleDisp(i,0);
-        }
-        trueAvgDisp = (double) trueAvgDisp / trueSampleDisp.rows();
+            logLik += - 1.0 / 2.0 * pow( ( (trueSampleDisp(i,0) - Mdisp ) / x[2] ), 2) ;
+           }
         MTrussFem.FEMClassReset(false);
 
 
         if( std::isnan(logLik) ){ logLik = -9e30; }
 
 
-        //Uniform Prior
-        else if(x[0] >= 1. ){ return -9e30;}
-        else {
-            logLik = logLik + std::log( 1. / 1. );
-        }
+        //Gaussian Prior - Conjugate Prior for Theta 1&2
+//        double PA1Mu = 0.025;
+//        double PA2Mu = 0.05;
 
-        //Gaussian Prior - Conjugate Prior
-        //logLik = logLik + -1./2.*std::log(2.0*M_PI) - std::log(0.054) - 1.0 / 2.0 * pow( ( x[0] - 0.04125 ) / 0.054 , 2 );
-        //logLik = logLik + -1./2.*std::log(2.0*M_PI) - std::log(0.100) - 1.0 / 2.0 * pow( ( x[0] - 0.0 ) / 100 , 2 );
+        double PA1Mu = 0.1;
+        double PA2Mu = 0.1;
 
+        double PA1Std = 1;
+        double PA2Std = 1;
 
+        logLik += -1./2. * std::log(2.0*M_PI) - std::log(PA1Std)  -   1.0 / 2.0 * pow( ( ( x[0] - PA1Mu ) / PA1Std ) , 2 );
+        logLik += -1./2. * std::log(2.0*M_PI) - std::log(PA2Std)  -   1.0 / 2.0 * pow( ( ( x[1] - PA2Mu ) / PA2Std ) , 2 );
+
+        //Gaussian Prior - Conjugate Prior for sigma Noise - Displacement or Area?
+        double PSigMu  = 0.0005;
+        double PSigStd = 0.001 ;
+        //logLik += -1./2. * std::log(2.0*M_PI) - std::log(PSigStd) - 1.0 / 2.0 * pow( ( ( x[2] - PSigMu ) / PSigStd ) , 2 );
+        logLik += std::log( pow( x[2], -2) );
 
         return logLik;
     };
 
-    Vec xStart = { 0.00001 };
+    Vec xStart = { 0.1, 0.1, 0.001 };
 
-    //Vec sigmaInitial = { 0.00000001 };
-    //Vec sigmaInitial = { 0.00001 };
-    Vec sigmaInitial = { 0.00101 };//works well
-    //Vec sigmaInitial = { 0.00201 };
-    //Vec sigmaInitial = { 0.00051 };
-    //Vec sigmaInitial = { 1. };
+    //Vec sigmaInitial = { 0.0001 , 0.0001, 1e-6 };
+    //Vec sigmaInitial = { 0.004 , 0.004, 7e-5 };
+    Vec sigmaInitial = { 0.001 , 0.001, 1e-5 };
 
-    Vec lower = {-1000};
-    Vec upper = {+1000};
+
+
+    Vec lower = {-1e9, -1e9, -1e9};
+    Vec upper = {+1e9, +1e9, +1e9};
 
     const std::pair< Vec, Vec > bounds = std::make_pair(lower, upper);
 
-    MCMC<Dim,Func, Vec> mcmc(pdf, xStart,sigmaInitial, bounds, true, true);
+    MCMC<Dim,Func, Vec> mcmc(pdf, xStart,sigmaInitial, bounds, false, true);
 
-    //std::vector<double> sigmaJump = { 0.001 };
-    std::vector<double> sigmaJump = { 0.1 };
-    //std::vector<double> sigmaJump = { 1. };
-    std::cout<<"goign for first mcmc method"<<std::endl;
+    std::vector<double> sigmaJump = { 0.1, 0.1, 0.001 };
 
+    //mcmc.setSigma(sigmaJump, 100, 1e4, true);
 
-
-    mcmc.setSigma(sigmaJump, 100, 1e4, true);
-
-    mcmc.sample( 1e4 );
+    mcmc.sample( 1 * 1e5 );
 
     //mcmc.thinSamples( 200, 5 );
-
-
 
     std::filebuf myFile;
     myFile.open("resultsModel.dat",std::ios::out);

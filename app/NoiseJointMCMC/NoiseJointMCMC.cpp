@@ -38,13 +38,14 @@ std::tuple<Eigen::MatrixXd, std::vector<double> > trueSampleGen(){
     myTrueFile.open("trueResults.dat", std::ios::trunc);
 
     //std::lognormal_distribution<double> lognormal1( mu1, sig1  );
-    std::lognormal_distribution<double> lognormal2( -3.688, 1  );
-    //std::normal_distribution<double> normal( 0, 0.001 );
+    //std::lognormal_distribution<double> lognormal2( -3.688, 1  );//all pics
+    std::normal_distribution<double> normal( 0, 0.001 );
 
     std::random_device rd;
     std::mt19937 engine( rd() );
 
-    int numSamples = 1e3;
+    int numSamples = 1e3;//pic 1 trough 12
+    //int numSamples = 1e2;//pic 1 trough 12
 
     std::vector<double> forcing (numSamples) ;
 
@@ -57,8 +58,8 @@ std::tuple<Eigen::MatrixXd, std::vector<double> > trueSampleGen(){
 
     for(int i = 0; i < numSamples ; i++){
 
-        //double A1 = 0.025 + normal( engine ) ;
-        double A1 = lognormal2( engine );
+        double A1 = 0.06 + normal( engine ) ;
+        //double A1 = lognormal2( engine );
         trueTrussFem.modA(0, A1);
 
         trueTrussFem.assembleS( );
@@ -134,6 +135,8 @@ int main(){
 
         double logLik = 0;
 
+        logLik += - (double) trueSampleDisp.rows() / 2.0 *  log ( 2.0 * M_PI) - (double) trueSampleDisp.rows()*log( x[1] ) ;
+
         double trueAvgDisp = 0;
 
         for(int i = 0; i < trueSampleDisp.rows(); ++i){
@@ -149,10 +152,15 @@ int main(){
 
 
         //Gaussian Prior - Conjugate Prior for Theta
-        logLik = logLik + -1./2. * std::log(2.0*M_PI*0.054) - 1.0 / 2.0 * pow( ( ( x[0] - 0.04125 ) / 0.054 ) , 2 );
+        double muP = 0;
+        double stdP = 10;
+        logLik += -1./2. * std::log(2.0*M_PI) -std::log(stdP) - 1.0 / 2.0 * pow( ( ( x[0] - muP ) / stdP ) , 2 );
 
         //Gaussian Prior - Conjugate Prior for sigma Noise
-        logLik = logLik + -1./2. * std::log(2.0*M_PI*0.005) - 1.0 / 2.0 * pow( ( ( x[1] - 0.0054 ) / 0.005 ) , 2 );//pic 1 through 8
+        double muPsig = 0;
+        double stdPsig = 1;
+        logLik += -1./2. * std::log(2.0*M_PI) - std::log(stdPsig) - 1.0 / 2.0 * pow( ( ( x[1] - muPsig ) / stdPsig ) , 2 );
+        //logLik += -1./2. * std::log(2.0*M_PI) - std::log(0.005) - 1.0 / 2.0 * pow( ( ( x[1] - 0.0054 ) / 0.005 ) , 2 );//pic 1 through 8
         //logLik = logLik + -1./2. * std::log(2.0*M_PI*0.005) - 1.0 / 2.0 * pow( ( ( x[1] - 0.015 ) / 0.05 ) , 2 );//pic 9 and 10
         //logLik = logLik + -1./2. * std::log(2.0*M_PI*0.005) - 1.0 / 2.0 * pow( ( ( x[1] - 0.0054 ) / 0.001 ) , 2 );//pic11
         //logLik = logLik + -1./2. * std::log(2.0*M_PI*0.005) - 1.0 / 2.0 * pow( ( ( x[1] - 0.0054 ) / 0.0005 ) , 2 );//pic12
@@ -161,7 +169,7 @@ int main(){
         return logLik;
     };
 
-    Vec xStart = { 0.015, 0.006 };
+    Vec xStart = { 0.06, 1e-5 };
 
     //Vec sigmaInitial = { empSigma/10., empSigma / 1000. };
     //Vec sigmaInitial = { 0.01/10., 0.00052 / 100. };
@@ -171,10 +179,12 @@ int main(){
     //Vec sigmaInitial = { 0.01 , 0.00052 * 2. };//pic v5
     //Vec sigmaInitial = { 0.01 , 0.00052 * 5. };//pic v6
     //Vec sigmaInitial = { 0.01 * 5 , 0.00052 * 5. };//pic 7
-    Vec sigmaInitial = { 0.01 * 7 , 0.00052 * 10. };//pic8 and pic 9
+    //Vec sigmaInitial = { 0.01 * 7 , 0.00052 * 10. };//pic8 and pic 9
     //Vec sigmaInitial = { 0.01 * 7 , 0.00052 * 5. };//pic 10
     //Vec sigmaInitial = { 0.01 * 1. , 0.00052 * 2. };//pic 11
     //Vec sigmaInitial = { 0.01 / 1. , 0.00052 / 1. };//pic 12
+    //Vec sigmaInitial = { 0.001 / 1. , 0.000052 / 1. };
+    Vec sigmaInitial = { 0.00001  , 1e-7  };
 
 
     Vec lower = {-1000, -1000};
