@@ -440,19 +440,23 @@ void MCMC<DIM, FUNC, ARG>::thinSamples ( unsigned burnIn, unsigned keepSamp ){
     std::vector<int>::iterator it;
     int position = acceptedCandidates_.size();
 
-    for(auto it = acceptedCandidates_.end(); it != acceptedCandidates_.begin() ; --it ){
+    for(auto it = acceptedCandidates_.end(); it !=  acceptedCandidates_.begin() ; --it ){
 
         if( position < burnInNum_ ){
 
             acceptedCandidates_.erase( it );
 
-        }else if( position % keepSamp != 0 ){
+        }
+
+        if( position % keepSamp != 0 ){
 
             acceptedCandidates_.erase( it );
         }
 
         --position;
     }
+
+    acceptedCandidates_.erase( acceptedCandidates_.begin() );
 }
 
 
