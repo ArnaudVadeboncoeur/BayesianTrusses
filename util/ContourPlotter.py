@@ -8,18 +8,19 @@ import time
 
 data = []
 
+myFile = input("input file Path: ")
+
 def is_float(string):
 	try:
 		return float(string)
 	except ValueError:
 		return False
 
-with open('../results.dat','r') as f:
+with open(myFile,'r') as f:
 	reader = f.readlines()
 	for line  in reader:
 		split = line.rstrip().split(" ")
 		data.append([float(line) if is_float(line) else line  for line in split ])
-print(data)
 data = np.array(data, dtype = float)
 
 try:
@@ -30,7 +31,7 @@ except:
 ndim = columns
 print("ndim = ", ndim)
 data.sort(axis=0)
-print(data)
+
 x = data[:, 0]
 y = data[:, 1]
 X, Y = np.meshgrid(x, y)

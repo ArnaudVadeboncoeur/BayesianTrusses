@@ -1,0 +1,241 @@
+/*
+ * BTrussMCMC_MH.cpp
+ *
+ *  Created on: 12 Dec 2019
+ *      Author: arnaudv
+ */
+
+
+#include "../../../src/FEMClass.hpp"
+
+#include "../../../src/statTools/SampleAnalysis.hpp"
+#include "../../../src/statTools/histSort.hpp"
+#include "../../../src/statTools/KLDiv.hpp"
+#include "../../../src/statTools/SteinDiscrepancy.hpp"
+
+//#include "../../../src/statTools/MCMC2.hpp"
+#include "../../../src/statTools/MCMC3-SimAnnealing.hpp"
+
+
+#include <Eigen/Dense>
+
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <tuple>
+#include <random>
+#include <cmath>
+#include <math.h>
+
+#include "ThreeDTruss.hpp"
+
+std::tuple<Eigen::MatrixXd, std::vector<double> > trueSampleGen(){
+
+    bool verbosity = false;
+
+    std::ofstream myTrueFile;
+    myTrueFile.open("trueResults.dat", std::ios::trunc);
+
+    std::normal_distribution<double> normal( 0, 0.001 );
+
+    std::random_device rd;
+    std::mt19937 engine( rd() );
+
+    int numSamples = 1e3;
+
+    std::vector<double> forcing (numSamples) ;
+
+    Eigen::MatrixXd allSamples (numSamples, 2);
+
+    TupleTrussDef TrussDef;
+    TrussDef =  InitialTrussAssignment();
+
+    FEMClass trueTrussFem(false, TrussDef );
+
+    for(int i = 0; i < numSamples ; i++){
+
+        double A1 = 0.06 + normal( engine ) ;
+        double A2 = 0.04 + normal( engine ) ;
+
+        trueTrussFem.modA(1, A1);
+        trueTrussFem.modA(2, A2);
+
+        trueTrussFem.assembleS( );
+        trueTrussFem.computeDisp( );
+        trueTrussFem.computeForce( );
+
+        allSamples(i, 0) = trueTrussFem.getDisp(10) ;
+        allSamples(i, 1) = trueTrussFem.getDisp(9 ) ;
+
+
+
+
+        myTrueFile << A1 <<" " << A2 <<" "<<allSamples(i, 0)<<" "<< allSamples(i, 1)<<'\n';
+        //std::cout << A1 <<" " << A2 << '\n';
+
+        trueTrussFem.FEMClassReset(false);
+        if( verbosity == true){if( (numSamples > 100 * 5 ) && ( i % (numSamples / ( 20 ) )  == 0 ) ){std::cout << "computed " << i << " samples " <<'\n';}}
+    }
+
+    myTrueFile.close();
+    //std::cout << allSamples <<std::endl;
+
+    return std::make_tuple(allSamples, forcing );
+}
+
+
+int main(){
+
+
+    std::tuple<Eigen::MatrixXd, std::vector<double> > trueSamples = trueSampleGen();
+    Eigen::MatrixXd trueSampleDisp = std::get<0>( trueSamples );
+
+
+    using Vec = std::vector<double>;
+    using Func = std::function <double(Vec)>;
+
+    constexpr unsigned Dim = 2 * 2;
+
+
+    Func pdf = [trueSampleDisp]( Vec x ){
+
+        for( int i = 0; i < x.size(); ++i){
+            if( x[i] <= 0 ){ return -9e30;}
+            }
+
+        TupleTrussDef MTrussDef;
+        MTrussDef = InitialTrussAssignment( );
+        FEMClass MTrussFem( false, MTrussDef );
+
+        MTrussFem.modA( 1, x[0] );
+        MTrussFem.modA( 2, x[1] );
+
+
+        MTrussFem.assembleS( );
+        MTrussFem.computeDisp( );
+
+        double Mdisp1 = MTrussFem.getDisp( 10 ) ;
+        double Mdisp2 = MTrussFem.getDisp( 9 ) ;
+
+        Eigen::Vector2d theta;
+        theta << x[0], x[1];
+
+        Eigen::Vector2d K_thetaInvf;
+        K_thetaInvf << Mdisp1, Mdisp2;
+
+        Eigen::Matrix2d CovMatrixNoise;
+        CovMatrixNoise << x[2],  0,
+                          0   ,  x[3];
+
+        double logLik = 0;
+
+        //  p(y|Theta, Sigma)
+        logLik += - (double) trueSampleDisp.rows() / 2.0 * std::log( CovMatrixNoise.determinant() ) ;
+
+        //logLik += - 1. / 2.0 * std::log( CovMatrixNoise.determinant() ) ;
+
+        //std::cout << logLik << " ";
+
+        Eigen::Vector2d y_iVec;
+        for(int i = 0; i < trueSampleDisp.rows(); ++i){
+
+            y_iVec[0] = trueSampleDisp(i,0);
+            y_iVec[1] = trueSampleDisp(i,1);
+
+            //std::cout << y_iVec << std::endl;
+
+            logLik += - 1./2. * (y_iVec - K_thetaInvf).transpose() * CovMatrixNoise.inverse() * (y_iVec - K_thetaInvf)   ;
+
+//            std::cout << trueSampleDisp(i,0)<< "\n";
+//            std::cout << y_iVec << " " << K_thetaInvf << "\n\n";
+//            std::cout << (y_iVec - K_thetaInvf).transpose() * 1e6 << "\n\n\n\n";
+
+        }
+        MTrussFem.FEMClassReset(false);
+
+        //std::cout << logLik << " ";
+
+        if( std::isnan(logLik) ){ logLik = -9e30; }
+
+
+        //Gaussian Prior - Conjugate Prior for Theta p( Theta_0 | Theta_0, sig^2 / k_0 )
+
+        Eigen::Vector2d theta_0;
+        //theta_0 << 0.045, 0.045 ;
+        theta_0 << 0.1, 0.1 ;
+
+        double k_0  = 1e-4 ; // need k_0 to counter weight of prior
+        //double k_0  = 1;
+
+        logLik += - 1./2.* std::log( ( CovMatrixNoise / k_0).determinant() )
+                 - 1./2.* (theta - theta_0).transpose() * (CovMatrixNoise / k_0 ).inverse() * (theta - theta_0) ;
+
+        //std::cout << logLik << " ";
+
+        //Gaussian Prior - Conjugate Prior for sigma Noise
+        Eigen::Matrix2d phi_0;
+//        phi_0 << 0.001,    0,
+//                 0    ,  0.001;
+
+//        phi_0 << 0.001,    0,
+//                 0    ,  0.001;
+//        double nu_0   = 4;
+        phi_0 << 1.,    0,
+                 0    ,  1.;
+        double nu_0   = 4;
+
+        logLik +=    nu_0/2. * std::log( phi_0.determinant( ) )
+                  -( nu_0 + 2. + 1. ) / 2. * std::log( CovMatrixNoise.determinant( ) )
+                  - 1./2. * ( phi_0 * CovMatrixNoise.inverse() ).trace()  ;
+
+        //std::cout << logLik << " " << std::endl;
+
+        return logLik;
+    };
+
+    Vec xStart = { 0.04 ,0.04, 0.0001, 0.0001 };
+    //Vec xStart = { 0.09 ,0.09, 0.00001, 0.00001 };
+
+    Vec sigmaInitial = { 0.00050,0.00050, 0.00001, 0.00001};
+
+
+    Vec lower = {-1e9, -1e9, -1e9, -1e9};
+    Vec upper = {+1e9, +1e9, +1e9, +1e9};
+
+    const std::pair< Vec, Vec > bounds = std::make_pair(lower, upper);
+
+    MCMC<Dim,Func, Vec> mcmc(pdf, xStart,sigmaInitial, bounds, false, true);
+
+    std::vector<double> sigmaJump = { 0.1, 0.0001,0.1, 0.0001};
+
+    //mcmc.setSigma(sigmaJump, 100, 1e4, true);
+
+    mcmc.sample( 1e5 );
+
+    //mcmc.thinSamples( 100 , 3 );
+
+    std::filebuf myFile;
+    myFile.open("resultsModel.dat",std::ios::out);
+    std::ostream osOut (&myFile);
+    mcmc.writeResult(osOut);
+    myFile.close();
+
+    Vec maxArg = mcmc.getMaxArg();
+    std::cout<<".getMaxArg() = : ";
+
+    for(int i = 0; i < Dim; ++i ){
+
+        std::cout<<maxArg[i] << " ";
+
+    }std::cout<<std::endl;
+    std::cout<< "Here" << std::endl;
+    std::cout<<".getMaxVal() = : "<< mcmc.getMaxVal() <<std::endl;
+
+
+
+
+    return 0;
+
+}
+
+

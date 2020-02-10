@@ -16,8 +16,30 @@
 
 #include <Eigen/Dense>
 
+double SampleMean(const Eigen::MatrixXd& allSamples, int column ){
+    //Computes Average over range
+   int sampleCtr = 0;
+   double monteCarloSum  = 0;
+   double monteCarloAvg;
 
-double MonteCarloAvgs(const Eigen::MatrixXd& allSamples){
+   bool verbosity = false;
+
+   for( unsigned i = 0; i < allSamples.rows(); ++i ){
+
+       monteCarloSum += allSamples(i, column);
+
+           sampleCtr ++ ;
+       }
+
+
+
+   monteCarloAvg =  monteCarloSum / sampleCtr ;
+
+
+   return monteCarloAvg ;
+}
+
+double MonteCarloAvgs(const Eigen::MatrixXd& allSamples, int column ){
     //Computes Average over range
    double upperBound =  1e10;
    double lowerBound = -1e10;
@@ -25,21 +47,21 @@ double MonteCarloAvgs(const Eigen::MatrixXd& allSamples){
    double valMin = 0;
    int sampleCtr = 0;
    double monteCarloSum  = 0;
-   int index = 0;
+
    bool verbosity = false;
 
    for( unsigned i = 0; i < allSamples.rows(); ++i ){
 
-       if( (allSamples(i, index) > lowerBound) || (allSamples(i, index) < upperBound) ){
+       if( (allSamples(i, column) > lowerBound) || (allSamples(i, column) < upperBound) ){
 
-           if( allSamples(i, index) > valMax )   {
-               valMax = allSamples(i, index);
+           if( allSamples(i, column) > valMax )   {
+               valMax = allSamples(i, column);
            }
-           if(allSamples(i, index) < valMin) {
-               valMin = allSamples(i, index);
+           if(allSamples(i, column) < valMin) {
+               valMin = allSamples(i, column);
            }
 
-           monteCarloSum += allSamples(i, index);
+           monteCarloSum += allSamples(i, column);
 
            sampleCtr ++ ;
        }

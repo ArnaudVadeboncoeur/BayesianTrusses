@@ -29,6 +29,9 @@ except:
 ndim = columns
 print("ndim = ", ndim)
 
+for i in range( 0 , columns + 1 ) :
+    print("dim {0} mean = {1}".format(i, np.mean( data[:,i] ) ) )
+
 dimPlot = int( input("input Dim to plot: ") )
 while( dimPlot >= 0 ):	
 
