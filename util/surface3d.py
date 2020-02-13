@@ -47,6 +47,13 @@ except:
 
 ndim = columns
 print("ndim = ", ndim)
+
+
+if ndim < 3 :
+    plt.scatter( data[:, 0],data[:, 1] )
+    plt.show()
+    exit()
+
 #data.sort(axis=0)
 #print(data)
 x = data[:, 0]

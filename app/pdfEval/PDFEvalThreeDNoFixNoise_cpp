@@ -194,15 +194,15 @@ int main(){
 
 //        //Gaussian Prior - Conjugate Prior for Theta p( Theta_0 | Theta_0, sig^2 / k_0 )
 //
-        Eigen::Vector3d theta_0;
-
-        theta_0 << 0.03, 0.03, 0.03 ;
-
-        //double k_0  = 1e-4 ; // need k_0 to counter weight of prior
-        double k_0  = 1e-4;
-
-        logLik +=  - 1./2.* std::log( ( CovMatrixNoise / k_0).determinant() )
-                 - 1./2.* (theta - theta_0).transpose() * (CovMatrixNoise / k_0 ).inverse() * (theta - theta_0) ;
+//        Eigen::Vector3d theta_0;
+//
+//        theta_0 << 0.03, 0.03, 0.03 ;
+//
+//        //double k_0  = 1e-4 ; // need k_0 to counter weight of prior
+//        double k_0  = 1e-4;
+//
+//        logLik +=  - 1./2.* std::log( ( CovMatrixNoise / k_0).determinant() )
+//                 - 1./2.* (theta - theta_0).transpose() * (CovMatrixNoise / k_0 ).inverse() * (theta - theta_0) ;
 
 
 
