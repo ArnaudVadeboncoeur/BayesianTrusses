@@ -31,7 +31,7 @@ int main(){
 
     constexpr unsigned Dim = 3;
 
-    Vec x(Dim); x << 0.0001, 0.04, 0.02;
+    Vec x(Dim); x << 0.0001, 0.0001, 0.02;
 
     double noiseLikStd = 0.0005;
     double logLikVal;
@@ -62,6 +62,8 @@ int main(){
     for(int i = 0; i < 50; ++i){
 
         xProp[0] = x[0] + normal ( engine );
+        xProp[1] = x[1] + normal ( engine );
+
         yProp = PostFunc.Eval( xProp );
 
         double t_0 = 1;
@@ -81,15 +83,15 @@ int main(){
                    xMax    = x;
            }
         }
-        myFile << x[0] << " " << yCurr << '\n';
+        myFile << x[0] << " " << x[1] << " " << yCurr << '\n';
     }
     myFile.close();
-    double LaplaceMAP = xMax[0];
+    Eigen::VectorXd LaplaceMAP(2) ; LaplaceMAP << xMax[0], xMax[1];
     std::cout << valMax << '\n' << xMax << std::endl;
 
 //Computing Entries of Hessian----------------------------------------------
 
-    unsigned hessDim = 1;
+    unsigned hessDim = 2;
     Eigen::MatrixXd negLogHess(hessDim, hessDim);
     negLogHess.setZero();
 
@@ -150,74 +152,103 @@ int main(){
 
     negLogHess = -1. * negLogHess;
     std::cout << negLogHess << std::endl;
-    std::cout << negLogHess.inverse() << std::endl;
-    double stdLaplace = negLogHess.inverse()(0,0);
-    std::cout << std::sqrt( negLogHess.inverse()(0,0) ) << std::endl;
+   // std::cout << negLogHess.inverse() << std::endl;
+    Eigen::MatrixXd stdLaplaceInv = negLogHess;
+    Eigen::MatrixXd stdLaplace = negLogHess.inverse();
+    //std::cout << std::sqrt( negLogHess.inverse()(0,0) ) << std::endl;
 
 //Eval True Pdf to plot ---------------------------------------------------------
 
+    Eigen::VectorXd xPost(3); xPost << 0.00,  0.00,  0.02;
+
     double LikVals;
-    double maxVal = 0;
-    double maxX = 0;
-    double Area = 0;
+    double maxVal = -9e30;
+    Eigen::VectorXd maxXPost(2); maxXPost << 0., 0.;
+    double Vol = 0;
 
     std::ofstream myFile2;
-    myFile2.open("pdfResults.dat");
+    myFile.open("pdfResults.dat");
 
-    double a = 0.0001;
-    double b = 0.5;
-    Vec xPdf(Dim); x << 0.0001, 0.04, 0.02;
+    double a = 0.0000001;
+    double b = 0.15;
 
-    int samples = 1e3;
-    double dx = (double) (b - a) / samples;
-    std::cout << dx << std::endl;
+    double c = 0.0000001;
+    double d = 0.15;
 
-    Eigen::MatrixXd evaluations (samples, 2);
+    int samplesX = 1e2;
+    int samplesY = 1e2;
 
-    for(int i = 0; i < samples; ++i){
+    double dx = (double) (b - a) / samplesX;
+    double dy = (double) (d - c) / samplesY;
 
-        xPdf[0] = a + (double) dx * i ;
-        //std::cout << xPdf[0] << " ";
-        LikVals =  PostFunc.Eval(xPdf) ;
-        //std::cout << LikVals << std::endl;
+    //std::cout << dx << std::endl;
 
-        if(LikVals > maxVal){
-            maxVal = LikVals;
-            maxX   = xPdf[0];
+    Eigen::MatrixXd evaluations ( samplesX * samplesY , 3);
+
+    unsigned ctr = 0;
+
+    for(int i = 0; i < samplesX; ++i){
+
+        xPost[0] = a + (double) dx * i ;
+
+        for(int j = 0; j < samplesY; ++j){
+
+            xPost[1] = c + (double) dy * j ;
+            //x[1] = 0.04 ;
+
+            LikVals =  PostFunc.Eval( xPost ) ;
+            //std::cout << xPost << "\n" <<LikVals << std::endl << std::endl;
+
+            if(LikVals > maxVal){
+                maxVal = LikVals;
+                maxXPost[0]   = xPost[0];
+                maxXPost[1]   = xPost[1];
+            }
+
+            evaluations(ctr, 0) = xPost[0];
+            evaluations(ctr, 1) = xPost[1];
+            evaluations(ctr, 2) = LikVals;
+
+            ctr++;
         }
-
-        evaluations(i, 0) = xPdf[0];
-        evaluations(i, 1) = LikVals;
     }
 
     for(int i = 0; i < evaluations.rows(); ++i){
-        evaluations(i, 1) = std::exp( evaluations(i, 1) - maxVal );
-        Area += evaluations(i, 1) * dx ;
+        evaluations(i, 2) = std::exp(evaluations(i, 2) - maxVal) ;
+        Vol += evaluations(i, 2) * dx * dy;
     }
 
     for(int i = 0; i < evaluations.rows(); ++i){
-
-        evaluations(i, 1) = evaluations(i, 1) / Area;
-        myFile2 << evaluations(i, 0) << " " << evaluations(i, 1) <<std::endl;
+        evaluations(i, 2) = evaluations(i, 2) / Vol;
+        myFile << evaluations(i, 0) << " " << evaluations(i, 1) << " " << evaluations(i, 2) << std::endl;
     }
 
-    std::cout << "maxVal = " << maxVal << " maxX = " << maxX << std::endl;
-    myFile2.close();
+
+    std::cout << "maxVal = " << maxVal <<"\n"<< " maxX = " << maxXPost[0] <<" "<< maxXPost[1] << std::endl;
 
 //Eval Laplace Approx --------------------------------------
 
-    double xGauss;
+    Eigen::VectorXd xGauss (2);
     std::ofstream myFile3;
     myFile3.open("pdfLaplceEval.dat");
     double probDensVal;
     std::cout << "-------------------" << '\n';
     std::cout << "LaplaceMap = " << LaplaceMAP << " stdLaplace = " << stdLaplace << std::endl;
-    for(int i = 0; i < samples; ++i){
+    for(int i = 0; i < samplesX; ++i){
 
-            xGauss = a + (double) dx * i ;
-            probDensVal =  1./ std::sqrt(2. * M_PI * stdLaplace ) * std::exp( -1./(2.*stdLaplace) * pow( ( xGauss -  LaplaceMAP ), 2.)  );
-            myFile3 << xGauss << " " << probDensVal << std::endl;
-    }
+        xGauss[0] = a + (double) dx * i ;
+
+        for(int j = 0; j < samplesX; ++j){
+
+            xGauss[1] = c + (double) dy * j ;
+
+
+            probDensVal = 1. / ( std::sqrt( pow(2*M_PI, 2) * negLogHess.inverse().determinant() )   ) *
+                          std::exp( - 1./2. * (xGauss - LaplaceMAP).transpose() * negLogHess * (xGauss - LaplaceMAP)    );
+
+
+            myFile3 << xGauss[0] << " " << xGauss[1] << " " << probDensVal << std::endl;
+    }}
     myFile3.close();
 
 

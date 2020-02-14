@@ -106,11 +106,8 @@ double PdfEval<DIM, Vec>::Eval(Vec x ){
 
     MTrussFem.FEMClassReset(false);
 
-    if( std::isnan(logLik) ){
+    if( std::isnan(logLik) ){ return -9e30;}
 
-        std::cout << " isnan " << std::endl;
-
-        logLik = -9e30;}
 
     //Gaussian Prior - Conjugate Prior for Theta p( Theta_0 | Theta_0, sig^2 / k_0 )
 
