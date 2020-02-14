@@ -44,7 +44,7 @@ int main(){
 
     PdfEval< Dim, Vec> PostFunc ( noiseLikStd, trueSampleDisp, sampleDof, priorMeans );
 
-    //simulated annealing to find MAP--------------------------------------------
+//simulated annealing to find MAP--------------------------------------------
     Vec xProp(Dim);
     xProp = x;
     double yProp, yCurr, ratio;
@@ -59,7 +59,7 @@ int main(){
     std::random_device rd;
     std::mt19937 engine( rd() );
 
-    for(int i = 0; i < 40; ++i){
+    for(int i = 0; i < 50; ++i){
 
         xProp[0] = x[0] + normal ( engine );
         yProp = PostFunc.Eval( xProp );
@@ -84,9 +84,10 @@ int main(){
         myFile << x[0] << " " << yCurr << '\n';
     }
     myFile.close();
+    double LaplaceMAP = xMax[0];
     std::cout << valMax << '\n' << xMax << std::endl;
 
-    //Computing Entries of Hessian----------------------------------------------
+//Computing Entries of Hessian----------------------------------------------
 
     unsigned hessDim = 1;
     Eigen::MatrixXd negLogHess(hessDim, hessDim);
@@ -150,6 +151,7 @@ int main(){
     negLogHess = -1. * negLogHess;
     std::cout << negLogHess << std::endl;
     std::cout << negLogHess.inverse() << std::endl;
+    double stdLaplace = negLogHess.inverse()(0,0);
     std::cout << std::sqrt( negLogHess.inverse()(0,0) ) << std::endl;
 
 //Eval True Pdf to plot ---------------------------------------------------------
@@ -162,7 +164,7 @@ int main(){
     std::ofstream myFile2;
     myFile2.open("pdfResults.dat");
 
-    double a = 0.00001;
+    double a = 0.0001;
     double b = 0.5;
     Vec xPdf(Dim); x << 0.0001, 0.04, 0.02;
 
@@ -175,7 +177,9 @@ int main(){
     for(int i = 0; i < samples; ++i){
 
         xPdf[0] = a + (double) dx * i ;
+        //std::cout << xPdf[0] << " ";
         LikVals =  PostFunc.Eval(xPdf) ;
+        //std::cout << LikVals << std::endl;
 
         if(LikVals > maxVal){
             maxVal = LikVals;
@@ -184,7 +188,6 @@ int main(){
 
         evaluations(i, 0) = xPdf[0];
         evaluations(i, 1) = LikVals;
-
     }
 
     for(int i = 0; i < evaluations.rows(); ++i){
@@ -200,6 +203,24 @@ int main(){
 
     std::cout << "maxVal = " << maxVal << " maxX = " << maxX << std::endl;
     myFile2.close();
+
+//Eval Laplace Approx --------------------------------------
+
+    double xGauss;
+    std::ofstream myFile3;
+    myFile3.open("pdfLaplceEval.dat");
+    double probDensVal;
+    std::cout << "-------------------" << '\n';
+    std::cout << "LaplaceMap = " << LaplaceMAP << " stdLaplace = " << stdLaplace << std::endl;
+    for(int i = 0; i < samples; ++i){
+
+            xGauss = a + (double) dx * i ;
+            probDensVal =  1./ std::sqrt(2. * M_PI * stdLaplace ) * std::exp( -1./(2.*stdLaplace) * pow( ( xGauss -  LaplaceMAP ), 2.)  );
+            myFile3 << xGauss << " " << probDensVal << std::endl;
+    }
+    myFile3.close();
+
+
 
     return 0;
 

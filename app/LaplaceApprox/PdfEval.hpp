@@ -52,6 +52,8 @@ double PdfEval<DIM, Vec>::Eval(Vec x ){
 
     for(int i = 0; i < DIM; ++i){
         if( x[i] <= 0 ){
+
+            std::cout << "x[i] < 0 " << std::endl;
             return -9e30;
         }}
 
@@ -78,7 +80,7 @@ double PdfEval<DIM, Vec>::Eval(Vec x ){
     Eigen::VectorXd theta(DIM);
     for(int i =0; i < DIM; ++i){
 
-        theta[i] = x[1];
+        theta[i] = x[i];
     }
 
     Eigen::MatrixXd CovMatrixNoise (DIM,DIM);
@@ -101,9 +103,14 @@ double PdfEval<DIM, Vec>::Eval(Vec x ){
         logLik += - 1./2. * (y_iVec - K_thetaInvf).transpose() * CovMatrixNoise.inverse() * (y_iVec - K_thetaInvf)   ;
 
     }
+
     MTrussFem.FEMClassReset(false);
 
-    if( std::isnan(logLik) ){ logLik = -9e30;}
+    if( std::isnan(logLik) ){
+
+        std::cout << " isnan " << std::endl;
+
+        logLik = -9e30;}
 
     //Gaussian Prior - Conjugate Prior for Theta p( Theta_0 | Theta_0, sig^2 / k_0 )
 

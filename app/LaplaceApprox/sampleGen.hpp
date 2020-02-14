@@ -35,7 +35,7 @@ std::tuple<Eigen::MatrixXd, std::vector<double> > trueSampleGen(){
     std::random_device rd;
     std::mt19937 engine( rd() );
 
-    int numSamples = 20;
+    int numSamples = 40;
 
     std::vector<double> forcing (numSamples) ;
 
