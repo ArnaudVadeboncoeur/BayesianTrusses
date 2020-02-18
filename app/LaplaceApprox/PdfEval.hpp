@@ -53,7 +53,6 @@ double PdfEval<DIM, Vec>::Eval(Vec x ){
     for(int i = 0; i < DIM; ++i){
         if( x[i] <= 0 ){
 
-            std::cout << "x[i] < 0 " << std::endl;
             return -9e30;
         }}
 
@@ -117,7 +116,7 @@ double PdfEval<DIM, Vec>::Eval(Vec x ){
         theta_0[i] = priorMean_[i];
     }
 
-    double k_0  = 1e-4 ; // need k_0 to counter weight of prior
+    double k_0  = 1e-3 ; // need k_0 to counter weight of prior
 
     logLik += - 1./2.* std::log( ( CovMatrixNoise / k_0).determinant() )
               - 1./2.* (theta - theta_0).transpose() * (CovMatrixNoise / k_0 ).inverse() * (theta - theta_0) ;

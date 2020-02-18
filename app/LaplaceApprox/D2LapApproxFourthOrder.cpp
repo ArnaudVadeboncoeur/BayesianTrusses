@@ -6,8 +6,11 @@
  */
 
 #include "../../src/FEMClass.hpp"
+#include "../../src/statTools/KLDiv.hpp"
 
 #include <Eigen/Dense>
+#include <eigen3/unsupported/Eigen/MatrixFunctions>
+
 
 #include <iostream>
 #include <fstream>
@@ -39,7 +42,7 @@ int main(){
     std::ofstream myFile;
     myFile.open("results.dat");
 
-    Vec priorMeans(Dim); priorMeans << 0.03, 0.03, 0.03;
+    Vec priorMeans(Dim); priorMeans << 0.05, 0.03, 0.02;
     Eigen::VectorXi sampleDof(Dim); sampleDof << 9, 10, 11;
 
     PdfEval< Dim, Vec> PostFunc ( noiseLikStd, trueSampleDisp, sampleDof, priorMeans );
@@ -87,7 +90,7 @@ int main(){
     }
     myFile.close();
     Eigen::VectorXd LaplaceMAP(2) ; LaplaceMAP << xMax[0], xMax[1];
-    std::cout << valMax << '\n' << xMax << std::endl;
+    //std::cout << valMax << '\n' << xMax << std::endl;
 
 //Computing Entries of Hessian----------------------------------------------
 
@@ -97,65 +100,87 @@ int main(){
 
     using Func = std::function <double( int, double)>;
 
-    double h = 0.00001;
-    Eigen::VectorXd x1(Dim);
-    Eigen::VectorXd x2(Dim);
-    Eigen::VectorXd x3(Dim);
-    Eigen::VectorXd x4(Dim);
-    double y1,y2,y3,y4;
+    double h = 0.001 ;
+
+    Eigen::VectorXd ys(16);
+
+    Eigen::MatrixXd shiftingH (16, 2);
+    shiftingH << 2, 2,
+                 2, 1,
+                 2, -1,
+                 2, -2,
+
+                 1, 2,
+                 1, 1,
+                 1, -1,
+                 1, -2,
+
+                 -1, 2,
+                 -1, 1,
+                 -1, -1,
+                 -1, -2,
+
+                 -2, 2,
+                 -2, 1,
+                 -2, -1,
+                 -2, -2;
+    shiftingH = shiftingH * h;
+
+    std::function <Eigen::VectorXd(int, int, double , double )> modMAP;
+    modMAP = [ xMax ](int i, int j, double dx, double dy ){
+        Eigen::VectorXd evalX;
+        evalX = xMax;
+        evalX[i] += dx; //std::cout << evalX[i];
+        evalX[j] += dy; //std::cout << evalX[j] << std::endl;
+        return evalX;
+    };
 
     for(int i = 0; i < negLogHess.rows(); ++i){
         for(int j = 0; j<negLogHess.cols(); ++j){
 
             if( i > j){
                 negLogHess(i,j) = negLogHess(j,i);
-                std::cout << " Here1" << std::endl;
             }
 
             else if(i == j){
-                 x1 = xMax; x1[i] -=  h ;
-                 x2 = xMax; x2[i] +=  h ;
-                 y1 = PostFunc.Eval(x1);
-                 y2 = PostFunc.Eval(x2);
-                 negLogHess(i, i) = (  y1  - 2 *  valMax  +  y2 )  / std::pow(h, 2);
-                 std::cout << " Here2" << std::endl;
+
+                 ys.setZero();
+                 ys[0] = PostFunc.Eval( modMAP(i, j,   2*h,  0. ) );
+                 ys[1] = PostFunc.Eval( modMAP(i, j,   h,    0. ) );
+                 ys[2] = PostFunc.Eval( modMAP(i, j,   0.,   0. ) );
+                 ys[3] = PostFunc.Eval( modMAP(i, j,  -h,    0. ) );
+                 ys[4] = PostFunc.Eval( modMAP(i, j,  -2*h,  0. ) );
+
+                 negLogHess(i, i) = (  -ys[0]  +  16 * ys[1]  -  30*ys[2]  +  16*ys[3]  -  ys[4] )  / ( 12. * h * h );
 
             }
 
             else if(i != j){
-                x1 = xMax;
-                x1[i] += h ;
-                x1[j] += h ;
-                y1 = PostFunc.Eval(x1);
 
-                x2 = xMax;
-                x2[i] += h ;
-                x2[j] -= h ;
-                y2 = PostFunc.Eval(x2);
+                ys.setZero();
+                for(int k = 0; k < shiftingH.rows(); ++k){
+                    ys[k] = PostFunc.Eval( modMAP(i, j,   shiftingH(k, 0),  shiftingH(k, 1) ) );
+                    //std::cout << shiftingH(k, 0) << " " <<  shiftingH(k, 1) << " " << ys[k] << std::endl;
+                }
+                //std::cout << "\n\n "<< xMax << "\n\n" << ys << std::endl;
 
-                x3 = xMax;
-                x3[i] -= h ;
-                x3[j] += h ;
-                y3 = PostFunc.Eval(x3);
-
-                x4 = xMax;
-                x4[i] -= h ;
-                x4[j] -= h ;
-                y4 = PostFunc.Eval(x4);
-
-                negLogHess(i, j) = ( y1  - y2 - y3 +  y4 )  / ( 4. * std::pow(h, 2) );
-                std::cout << " Here3" << std::endl;
+                negLogHess(i, j) = (    -    ( ys[0]  + 8*ys[1]  - 8*ys[2]  + ys[3] )
+		                                + 8 *( ys[4]  + 8*ys[5]  - 8*ys[6]  + ys[7] )
+		                                - 8 *( ys[8]  + 8*ys[9]  - 8*ys[10] + ys[11] )
+		                                + 1 *( ys[12] + 8*ys[13] - 8*ys[14] + ys[15] )    ) 
+		                                
+		                                / (144. * h * h ) ;
 
             }
         }
     }
 
-    negLogHess = -1. * negLogHess;
-    std::cout << negLogHess << std::endl;
-   // std::cout << negLogHess.inverse() << std::endl;
+    Eigen::MatrixXd Iden(hessDim, hessDim);
+    Iden.setIdentity();
+    Iden = Iden * 1e-8;
+    negLogHess = -1. * negLogHess ;
     Eigen::MatrixXd stdLaplaceInv = negLogHess;
-    Eigen::MatrixXd stdLaplace = negLogHess.inverse();
-    //std::cout << std::sqrt( negLogHess.inverse()(0,0) ) << std::endl;
+    Eigen::MatrixXd stdLaplace = negLogHess.inverse();// + Iden;
 
 //Eval True Pdf to plot ---------------------------------------------------------
 
@@ -170,10 +195,10 @@ int main(){
     myFile.open("pdfResults.dat");
 
     double a = 0.0000001;
-    double b = 0.15;
+    double b = 0.1;
 
     double c = 0.0000001;
-    double d = 0.15;
+    double d = 0.1;
 
     int samplesX = 1e2;
     int samplesY = 1e2;
@@ -181,23 +206,19 @@ int main(){
     double dx = (double) (b - a) / samplesX;
     double dy = (double) (d - c) / samplesY;
 
-    //std::cout << dx << std::endl;
-
     Eigen::MatrixXd evaluations ( samplesX * samplesY , 3);
 
     unsigned ctr = 0;
 
     for(int i = 0; i < samplesX; ++i){
 
-        xPost[0] = a + (double) dx * i ;
+        xPost[0] = a + (double) dx * ( i + 1) ;
 
         for(int j = 0; j < samplesY; ++j){
 
-            xPost[1] = c + (double) dy * j ;
-            //x[1] = 0.04 ;
+            xPost[1] = c + (double) dy * ( j + 1) ;
 
             LikVals =  PostFunc.Eval( xPost ) ;
-            //std::cout << xPost << "\n" <<LikVals << std::endl << std::endl;
 
             if(LikVals > maxVal){
                 maxVal = LikVals;
@@ -229,29 +250,39 @@ int main(){
 //Eval Laplace Approx --------------------------------------
 
     Eigen::VectorXd xGauss (2);
+    Eigen::MatrixXd EvalsLaplApp ( samplesX * samplesY , 3);
     std::ofstream myFile3;
     myFile3.open("pdfLaplceEval.dat");
     double probDensVal;
     std::cout << "-------------------" << '\n';
-    std::cout << "LaplaceMap = " << LaplaceMAP << " stdLaplace = " << stdLaplace << std::endl;
+
+    int ctr2 = 0;
+
+
+    std::cout << "LaplaceMap = \n" << LaplaceMAP << " \nstdLaplace = \n" << stdLaplace.sqrt() << std::endl;
     for(int i = 0; i < samplesX; ++i){
 
-        xGauss[0] = a + (double) dx * i ;
+        xGauss[0] = a + (double) dx * ( i + 1) ;
 
-        for(int j = 0; j < samplesX; ++j){
+        for(int j = 0; j < samplesY; ++j){
 
-            xGauss[1] = c + (double) dy * j ;
+            xGauss[1] = c + (double) dy * ( j + 1) ;
 
 
             probDensVal = 1. / ( std::sqrt( pow(2*M_PI, 2) * negLogHess.inverse().determinant() )   ) *
                           std::exp( - 1./2. * (xGauss - LaplaceMAP).transpose() * negLogHess * (xGauss - LaplaceMAP)    );
 
-
+            EvalsLaplApp(ctr2, 0) = xGauss[0];
+            EvalsLaplApp(ctr2, 1) = xGauss[1];
+            EvalsLaplApp(ctr2, 2) = probDensVal;
             myFile3 << xGauss[0] << " " << xGauss[1] << " " << probDensVal << std::endl;
+            ctr2 ++;
     }}
     myFile3.close();
 
 
+    std::cout << "KLDiv lapalce to True = "<<  KLDiv(EvalsLaplApp, evaluations) << std::endl;
+    std::cout << "L2Norm lapalce to True = "<< L2Norm(EvalsLaplApp, evaluations) << std::endl;
 
     return 0;
 

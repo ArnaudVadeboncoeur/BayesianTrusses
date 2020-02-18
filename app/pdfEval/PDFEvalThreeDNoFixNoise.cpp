@@ -140,22 +140,18 @@ int main(){
         double logLik = 0;
 
         //  p(y|Theta, Sigma)
-        logLik += - (double) trueSampleDisp.rows() / 2.0 * std::log( CovMatrixNoise.determinant() ) ;
-
-        //logLik += - 1. / 2.0 * std::log( CovMatrixNoise.determinant() ) ;
-
-        //std::cout << logLik << " ";
-
-        Eigen::Vector3d y_iVec;
-        for(int i = 0; i < trueSampleDisp.rows(); ++i){
-
-            y_iVec[0] = trueSampleDisp( i, 0 );
-            y_iVec[1] = trueSampleDisp( i, 1 );
-            y_iVec[2] = trueSampleDisp( i, 2 );
-
-            logLik += - 1./2. * (y_iVec - K_thetaInvf).transpose() * CovMatrixNoise.inverse() * (y_iVec - K_thetaInvf)   ;
-
-        }
+//        //logLik += - (double) trueSampleDisp.rows() / 2.0 * std::log( CovMatrixNoise.determinant() ) ;
+//
+//        Eigen::Vector3d y_iVec;
+//        for(int i = 0; i < trueSampleDisp.rows(); ++i){
+//
+//            y_iVec[0] = trueSampleDisp( i, 0 );
+//            y_iVec[1] = trueSampleDisp( i, 1 );
+//            y_iVec[2] = trueSampleDisp( i, 2 );
+//
+//           // logLik += - 1./2. * (y_iVec - K_thetaInvf).transpose() * CovMatrixNoise.inverse() * (y_iVec - K_thetaInvf)   ;
+//
+//        }
         MTrussFem.FEMClassReset(false);
 
         if( std::isnan(logLik) ){ logLik = -9e30;}
@@ -163,6 +159,20 @@ int main(){
 
 
 //------------------------------------------------------------------------------------------//
+
+        Eigen::Vector3d theta_0;
+
+        theta_0 << 0.03, 0.03, 0.03 ;
+
+        //double k_0  = 1e-4 ; // need k_0 to counter weight of prior
+        double k_0  = 1e-4;
+
+        logLik +=  - 1./2.* std::log( ( CovMatrixNoise / k_0).determinant() )
+             - 1./2.* (theta - theta_0).transpose() * (CovMatrixNoise / k_0 ).inverse() * (theta - theta_0) ;
+
+
+
+
 //        double Theta1R = 0.1;
 //        double Theta2R = 0.1;
 //
