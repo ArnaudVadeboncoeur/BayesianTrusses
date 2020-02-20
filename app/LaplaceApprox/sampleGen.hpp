@@ -9,7 +9,9 @@
 #define APP_LAPLACEAPPROX_SAMPLEGEN_HPP_
 
 
-#include "../../src/FEMClass.hpp"
+#include "../../../src/FEMClass.hpp"
+#include "ThreeDTruss23Elm.hpp"
+
 
 #include <Eigen/Dense>
 
@@ -21,25 +23,26 @@
 #include <cmath>
 #include <math.h>
 
-#include "ThreeDTruss.hpp"
 
-std::tuple<Eigen::MatrixXd, std::vector<double> > trueSampleGen(){
+std::tuple< Eigen::MatrixXd, std::vector<double> > trueSampleGen( ){
+
+    std::cout << "Here2" << std::endl;
 
     bool verbosity = false;
 
     std::ofstream myTrueFile;
-    myTrueFile.open("trueResults.dat", std::ios::trunc);
+    myTrueFile.open( "trueResults.dat" , std::ios::trunc);
 
     std::normal_distribution<double> normal( 0, 0.0005 );
 
     std::random_device rd;
-    std::mt19937 engine( rd() );
+    std::mt19937 engine( rd( ) );
 
     int numSamples = 50;
 
     std::vector<double> forcing (numSamples) ;
 
-    Eigen::MatrixXd allSamples (numSamples, 3);
+    Eigen::MatrixXd allSamples (numSamples, 6*3);
 
     TupleTrussDef TrussDef;
     TrussDef =  InitialTrussAssignment();
@@ -48,33 +51,34 @@ std::tuple<Eigen::MatrixXd, std::vector<double> > trueSampleGen(){
 
     for(int i = 0; i < numSamples ; i++){
 
-        double A1 = 0.06 + normal( engine ) ;
-        double A2 = 0.04 + normal( engine ) ;
-        double A3 = 0.02 + normal( engine ) ;
+            double A1 = 0.06 + normal( engine ) ;
+            double A2 = 0.04 + normal( engine ) ;
+            double A3 = 0.02 + normal( engine ) ;
 
-        trueTrussFem.modA(0, A1);
-        trueTrussFem.modA(1, A2);
-        trueTrussFem.modA(2, A3);
+            trueTrussFem.modA(0, A1);
+            trueTrussFem.modA(1, A2);
+            trueTrussFem.modA(2, A3);
 
-        trueTrussFem.assembleS( );
-        trueTrussFem.computeDisp( );
-        trueTrussFem.computeForce( );
+            trueTrussFem.assembleS( );
+            trueTrussFem.computeDisp( );
+            trueTrussFem.computeForce( );
 
-        allSamples(i, 0) = trueTrussFem.getDisp( 9 ) ;
-        allSamples(i, 1) = trueTrussFem.getDisp(10 ) ;
-        allSamples(i, 2) = trueTrussFem.getDisp(11 ) ;
+            allSamples(i, 0) = trueTrussFem.getDisp( 9 ) ;
+            allSamples(i, 1) = trueTrussFem.getDisp(10 ) ;
+            allSamples(i, 2) = trueTrussFem.getDisp(11 ) ;
 
 
 
-        myTrueFile << A1 << " " << A2 << " " << A3 << " " << allSamples(i, 0)<< " " << allSamples(i, 1)<<" "<< allSamples(i, 2) << '\n';
+            myTrueFile << A1 << " " << A2 << " " << A3 << " " << allSamples(i, 0)<< " " << allSamples(i, 1)<<" "<< allSamples(i, 2) << '\n';
 
-        trueTrussFem.FEMClassReset(false);
-        if( verbosity == true){if( (numSamples > 100 * 5 ) && ( i % (numSamples / ( 20 ) )  == 0 ) ){std::cout << "computed " << i << " samples " <<'\n';}}
-    }
+            trueTrussFem.FEMClassReset(false);
+            if( verbosity == true){if( (numSamples > 100 * 5 ) && ( i % (numSamples / ( 20 ) )  == 0 ) ){std::cout << "computed " << i << " samples " <<'\n';}}
+        }
 
-    myTrueFile.close();
+        myTrueFile.close();
 
     return std::make_tuple(allSamples, forcing );
+
 }
 
 #endif /* APP_LAPLACEAPPROX_SAMPLEGEN_HPP_ */

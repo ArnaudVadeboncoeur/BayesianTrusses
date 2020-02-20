@@ -11,7 +11,6 @@
 #include <Eigen/Dense>
 #include <eigen3/unsupported/Eigen/MatrixFunctions>
 
-
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -170,7 +169,6 @@ int main(){
 		                                + 1 *( ys[12] + 8*ys[13] - 8*ys[14] + ys[15] )    ) 
 		                                
 		                                / (144. * h * h ) ;
-
             }
         }
     }
@@ -244,7 +242,6 @@ int main(){
         myFile << evaluations(i, 0) << " " << evaluations(i, 1) << " " << evaluations(i, 2) << std::endl;
     }
 
-
     std::cout << "maxVal = " << maxVal <<"\n"<< " maxX = " << maxXPost[0] <<" "<< maxXPost[1] << std::endl;
 
 //Eval Laplace Approx --------------------------------------
@@ -257,7 +254,6 @@ int main(){
     std::cout << "-------------------" << '\n';
 
     int ctr2 = 0;
-
 
     std::cout << "LaplaceMap = \n" << LaplaceMAP << " \nstdLaplace = \n" << stdLaplace.sqrt() << std::endl;
     for(int i = 0; i < samplesX; ++i){
@@ -279,7 +275,6 @@ int main(){
             ctr2 ++;
     }}
     myFile3.close();
-
 
     std::cout << "KLDiv lapalce to True = "<<  KLDiv(EvalsLaplApp, evaluations) << std::endl;
     std::cout << "L2Norm lapalce to True = "<< L2Norm(EvalsLaplApp, evaluations) << std::endl;
