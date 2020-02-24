@@ -58,14 +58,18 @@ void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSampl
     for(int i = 0; i < numSamples ; i++){
 
         double A1 = 0.06 + normal( engine ) ;
+        double A2 = 0.04 + normal( engine ) ;
+
 
         trueTrussFem.modA(0, A1);
+        trueTrussFem.modA(1, A2);
+
 
         trueTrussFem.assembleS( );
         trueTrussFem.computeDisp( );
         trueTrussFem.computeForce( );
 
-        myTrueFile << A1 << " ";
+        myTrueFile << A1 << " " << A2 << " ";
         for(int j =0; j< dofs.size(); ++j){
 
             allSamples(i, j) = trueTrussFem.getDisp( dofs[j] ) ;

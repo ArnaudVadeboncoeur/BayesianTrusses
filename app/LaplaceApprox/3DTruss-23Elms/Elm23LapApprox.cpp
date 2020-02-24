@@ -36,7 +36,7 @@ int main(){
     using Vec  = Eigen::VectorXd;
 
     constexpr unsigned DimObs  = 18;
-    constexpr unsigned DimPara =  1;
+    constexpr unsigned DimPara =  2;
 
 
     double noiseLikStd = 0.0005;
@@ -56,7 +56,7 @@ int main(){
         }
 
 
-    Vec priorMeans(DimPara); priorMeans.setConstant(0.001);
+    Vec priorMeans(DimPara); priorMeans.setConstant(0.0025);
 
     PdfEval< DimObs, DimPara , Vec> PostFunc ( noiseLikStd, trueSampleDisp, sampleDof, priorMeans );
 
@@ -115,7 +115,7 @@ int main(){
     Eigen::VectorXd LaplaceMAP(DimPara) ; LaplaceMAP = xMax;
 
 
-    std::cout << valMax << '\n' << xMax << std::endl;
+    std::cout << "valMax \n" << valMax << '\n' <<" xMax \n" << xMax << "\n\n";
 
 //Computing Entries of Hessian----------------------------------------------
 
@@ -186,9 +186,9 @@ int main(){
 
 //Eval True Pdf to plot ---------------------------------------------------------
 
-    Eigen::Vector2i index; index << 0, -1;
     Eigen::VectorXd xPost( DimPara ); xPost = LaplaceMAP;
 
+    int dimEval = 2;
     double LikVals;
     double maxVal = -9e30;
     Eigen::VectorXd maxXPost(DimPara); maxXPost.setConstant(0);
@@ -204,28 +204,28 @@ int main(){
     double d = 0.1;
 
     int samplesX = 1e2;
-    //int samplesY = 1e2;
-    int samplesY = 1;
+    int samplesY = 1e2;
+    //int samplesY = 1;
 
 
     double dx = (double) (b - a) / samplesX;
-    //double dy = (double) (d - c) / samplesY;
-    double dy = 1.;
+    double dy = (double) (d - c) / samplesY;
+    //double dy = 1.;
 
 
-    Eigen::MatrixXd evaluations ( samplesX * samplesY , 2);
-//  Eigen::MatrixXd evaluations ( samplesX * samplesY , 3);
+    //Eigen::MatrixXd evaluations ( samplesX * samplesY , 2);
+    Eigen::MatrixXd evaluations ( samplesX * samplesY , dimEval + 1);
 
 
     unsigned ctr = 0;
 
     for(int i = 0; i < samplesX; ++i){
 
-        xPost[ index[0] ] = a + (double) dx * ( i + 1) ;
+        xPost[ 0 ] = a + (double) dx * ( i + 1) ;
 
-        //for(int j = 0; j < samplesY; ++j){
+        for(int j = 0; j < samplesY; ++j){
 
-            //xPost[ index[1] ] = c + (double) dy * ( j + 1) ;
+           xPost[ 1 ] = c + (double) dy * ( j + 1) ;
 
 
             LikVals =  PostFunc.Eval( xPost ) ;
@@ -236,22 +236,23 @@ int main(){
             }
 
             evaluations(ctr, 0) = xPost[0];
-            //evaluations(ctr, 1) = xPost[1];
-            evaluations(ctr, 1) = LikVals;
+            evaluations(ctr, 1) = xPost[1];
+            evaluations(ctr, 2) = LikVals;
 
             ctr++;
-        //}
+        }
     }
 
     for(int i = 0; i < evaluations.rows(); ++i){
-        evaluations(i, DimPara ) = std::exp(evaluations(i, DimPara ) - maxVal) ;
-        Vol += evaluations(i, 1) * dx * dy;
+        evaluations(i, dimEval ) = std::exp(evaluations(i, dimEval ) - maxVal) ;
+        //Vol += evaluations(i, 1) * dx;
+        Vol += evaluations(i, dimEval) * dx * dy;
     }
 
     for(int i = 0; i < evaluations.rows(); ++i){
-        evaluations(i, DimPara) = evaluations(i, DimPara) / Vol;
-        //myFile << evaluations(i, 0) << " " << evaluations(i, 1) << " " << evaluations(i, 2) << std::endl;
-        myFile << evaluations(i, 0) << " " << evaluations(i, 1) << std::endl;
+        evaluations(i, dimEval) = evaluations(i, dimEval) / Vol;
+        myFile << evaluations(i, 0) << " " << evaluations(i, 1) << " " << evaluations(i, 2) << std::endl;
+        //myFile << evaluations(i, 0) << " " << evaluations(i, 1) << std::endl;
     }
 
 
@@ -260,7 +261,7 @@ int main(){
 //Eval Laplace Approx --------------------------------------
 
     Eigen::VectorXd xGauss (DimPara); xGauss = LaplaceMAP;
-    Eigen::MatrixXd EvalsLaplApp ( samplesX * samplesY , 2);
+    Eigen::MatrixXd EvalsLaplApp ( samplesX * samplesY , dimEval + 1);
     std::ofstream myFile3;
     myFile3.open("pdfLaplceEval.dat");
     double probDensVal;
@@ -272,24 +273,25 @@ int main(){
     std::cout << "LaplaceMap = \n" << LaplaceMAP << " \nstdLaplace = \n" << stdLaplace.sqrt() << std::endl;
     for(int i = 0; i < samplesX; ++i){
 
-        xGauss[ index[0] ] = a + (double) dx * ( i + 1) ;
+        xGauss[ 0 ] = a + (double) dx * ( i + 1) ;
 
-        //for(int j = 0; j < samplesY; ++j){
+        for(int j = 0; j < samplesY; ++j){
 
 
-            //xGauss[ index[1] ] = c + (double) dy * ( j + 1) ;
+            xGauss[ 1 ] = c + (double) dy * ( j + 1) ;
 
 
             probDensVal = 1. / ( std::sqrt( pow(2*M_PI, 2) * negLogHess.inverse().determinant() )   ) *
                           std::exp( - 1./2. * (xGauss - LaplaceMAP).transpose() * negLogHess * (xGauss - LaplaceMAP)    );
 
             EvalsLaplApp(ctr2, 0) = xGauss[0];
-            //EvalsLaplApp(ctr2, 1) = xGauss[1];
-            EvalsLaplApp(ctr2, 1) = probDensVal;
-            //myFile3 << xGauss[ index[0] ] << " " << xGauss[index[1]] << " " << probDensVal << std::endl;
-            myFile3 << xGauss[0] << " " << probDensVal << std::endl;
+            EvalsLaplApp(ctr2, 1) = xGauss[1];
+            EvalsLaplApp(ctr2, 2) = probDensVal;
+            myFile3 << xGauss[ 0 ] << " " << xGauss[1] << " " << probDensVal << std::endl;
+            //myFile3 << xGauss[0] << " " << probDensVal << std::endl;
             ctr2 ++;
-    }//}
+        }
+    }
     myFile3.close();
 
 
