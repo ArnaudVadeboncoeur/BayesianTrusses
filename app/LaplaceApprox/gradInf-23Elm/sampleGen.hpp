@@ -25,6 +25,8 @@
 
 void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSamplesTuple ){
 
+
+
     bool verbosity = false;
 
     std::ofstream myTrueFile;
@@ -35,7 +37,7 @@ void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSampl
     std::random_device rd;
     std::mt19937 engine( rd() );
 
-    int numSamples = 10;
+    int numSamples = 5;
 
     Eigen::VectorXi nodesFree(6); nodesFree << 1, 2, 3, 6, 7, 8;
     Eigen::VectorXi dofs( nodesFree.size() * 3 );
@@ -46,12 +48,14 @@ void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSampl
         dofs[ j*3 + 2] = nodesFree[j]*3 + 2;
     }
 
+
     std::vector<double> forcing (numSamples) ;
 
     Eigen::MatrixXd allSamples (numSamples, dofs.size() );
 
     TupleTrussDef TrussDef;
     TrussDef =  InitialTrussAssignment();
+
 
     FEMClass trueTrussFem(false, TrussDef );
 
@@ -72,11 +76,12 @@ void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSampl
         myTrueFile << A1 << " " << A2 << " ";
         for(int j =0; j< dofs.size(); ++j){
 
-            allSamples(i, j) = trueTrussFem.getDisp( dofs[j] ) ;
+            allSamples(i, j) = trueTrussFem.getDisp( j ) ;
             myTrueFile << allSamples(i, j) << " ";
 
         }
         myTrueFile << std::endl;
+
 
         trueTrussFem.FEMClassReset(false);
     }
@@ -85,6 +90,7 @@ void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSampl
 
 
     trueSamplesTuple = std::make_tuple(allSamples, forcing );
+
 }
 
 #endif /* APP_LAPLACEAPPROX_SAMPLEGEN_HPP_ */

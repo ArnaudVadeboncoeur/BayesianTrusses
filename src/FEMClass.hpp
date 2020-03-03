@@ -70,11 +70,14 @@ public:
     void modE(int index, double Modulus)                    { E_[index] = Modulus ; }
     void modForce( int i_dof, int j_xyz, double forceMod )  { force_(i_dof * 3 + j_xyz, 0) = forceMod ; }
 
-    double getDisp(int dofIndex)         { return allDisp_[dofIndex] ; }
-    Eigen::VectorXd getDisp(   )         { return allDisp_ ; }
+    double getDisp(int dofIndex)         { return disp_[dofIndex] ; }
+    Eigen::VectorXd getDisp(   )         { return disp_ ; }
 
-    double getForce(int dofIndex)        { return allForce_[dofIndex] ; }
-    Eigen::VectorXd getForce(   )        { return allForce_ ; }
+    double getForce(int dofIndex)        { return force_(dofIndex, 0) ; }
+    Eigen::MatrixXd getForce(   )        { return force_ ; }
+
+    double getK(int dofi, int dofj)    { return S_(dofi, dofj) ; }
+    Eigen::MatrixXd getK(   )          { return S_ ; }
 
     double getA(int memberIndex )        { return A_( memberIndex ); }
     Eigen::VectorXd getA (   )           {return A_; }
@@ -127,6 +130,8 @@ FEMClass::FEMClass ( bool verbosity, TupleTrussDef TrussDef ) {
 
     TrussDef_ = TrussDef;
     FEMClassReset( verbosity);
+
+
 
 
 }
@@ -226,15 +231,6 @@ void FEMClass::assembleS(){
 
     }
 
-   return;
-
-}
-
-
-void FEMClass::computeDisp( ){
-    //---------------------------------compute displacement---------------------------------//
-
-
     //remove fixed degrees of freedom
     for(int i = dof_.size() - 1; i >= 0 ; --i){
 
@@ -250,6 +246,15 @@ void FEMClass::computeDisp( ){
     if( verbosity_ ) { std::cout <<"Structure Matrix \n" << S_ << '\n'; }
 
     if( verbosity_ ) { std::cout <<"Force Applied \n" << force_ << '\n'; }
+
+   return;
+
+}
+
+
+void FEMClass::computeDisp( ){
+    //---------------------------------compute displacement---------------------------------//
+
 
     disp_ =  S_.inverse() * force_ ;
 
