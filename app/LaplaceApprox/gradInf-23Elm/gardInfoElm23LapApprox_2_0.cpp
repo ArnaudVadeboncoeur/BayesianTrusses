@@ -125,7 +125,7 @@ int main(){
    //Labmda function to compute dudtheta_i
    std::function < Eigen::VectorXd      ( Eigen::VectorXd, Eigen::MatrixXd,
                                           Eigen::MatrixXd, Eigen::VectorXd, int ) > dudtheta_iFunc;
-   dudtheta_iFunc = [ ]( const Eigen::VectorXd& X,          const Eigen::MatrixXd& K_inv,
+   dudtheta_iFunc = [ ](   const Eigen::VectorXd& X,          const Eigen::MatrixXd& K_inv,
                            const Eigen::MatrixXd& dKdtheta_b, const Eigen::VectorXd& u,
                            int indexTheta ){
 
@@ -157,27 +157,55 @@ int main(){
        return dudTheta;
    };
 
+
    //Labmda function to compute du2_dthetab_Theta
-      std::function < Eigen::MatrixXd    ( const Eigen::VectorXd,
-                                            const Eigen::MatrixXd, const Eigen::VectorXd, int , int) > du2_dthetab_ThetaFunc;
+	std::function < Eigen::MatrixXd    ( const Eigen::VectorXd,
+									   const Eigen::MatrixXd, const Eigen::VectorXd, int, int) > du2_dthetai_dthetajFunc;
 
-      du2_dthetab_ThetaFunc = [ &dudtheta_iFunc, &dKdTheta_iFunc ]( const Eigen::VectorXd& X, const Eigen::MatrixXd& K_inv,
-                                                                     const Eigen::VectorXd& u, int indexThetai , int indexThetaj){
+	du2_dthetai_dthetajFunc = [ &dudtheta_iFunc, &dKdTheta_iFunc ]( const Eigen::VectorXd& X, const Eigen::MatrixXd& K_inv,
+																                   const Eigen::VectorXd& u, int index_i, int index_j ){
+	 Eigen::MatrixXd du2_dthetai_dthetaj( X.rows(), 1 );
 
-          Eigen::MatrixXd du2_dthetab_Theta( K_inv.rows(),  X.rows() );
+	 Eigen::MatrixXd dudtheta_i(K_inv.rows(), 1 );
+	 Eigen::MatrixXd dudtheta_j(K_inv.rows(), 1 );
 
-          Eigen::MatrixXd du2_dthetai_dthetaj( X.rows(), 1 );
+	 Eigen::MatrixXd dK_dtheta_i(K_inv.rows(), K_inv.rows());
+	 Eigen::MatrixXd dK_dtheta_j(K_inv.rows(), K_inv.rows());
 
-          for(int i = 0; i < X.rows(); ++i ){
+	 dK_dtheta_i = dKdTheta_iFunc( X, index_i);
+	 dK_dtheta_j = dKdTheta_iFunc( X, index_j);
 
-              du2_dthetai_dthetaj = dudtheta_iFunc( X, K_inv, dKdTheta_iFunc( X, i), u, i );
-              for(int j = 0; j < u.rows(); ++j ){
-                  du2_dthetab_Theta(j, i) = du2_dthetai_dthetaj(j);
-                  }
-              }
+	 dudtheta_i = dudtheta_iFunc( X, K_inv, dK_dtheta_i, u,inedx_i );
+	 dudtheta_j = dudtheta_iFunc( X, K_inv, dK_dtheta_j, u,inedx_i );
 
-          return   du2_dthetai_thetaj;
-      };
+	 du2_dthetai_dthetaj = -K_inv( dK_dtheta_i * dudtheta_j + dK_dtheta_j * dudtheta_i );
+
+	 return du2_dthetai_dthetaj
+	}
+
+
+
+	//Labmda function to compute du2_dthetab_Theta
+	std::function < Eigen::MatrixXd    ( const Eigen::VectorXd,
+										          const Eigen::MatrixXd, const Eigen::VectorXd, int) > du2_dthetab_ThetaFunc;
+
+	du2_dthetab_ThetaFunc = [ &du2_dthetai_dthetajFunc ]( const Eigen::VectorXd& X, const Eigen::MatrixXd& K_inv,
+																         const Eigen::VectorXd& u, int index_b ){
+
+	  Eigen::MatrixXd du2_dthetab_Theta( K_inv.rows(),  X.rows() );
+
+
+	  for(int i = 0; i < X.rows(); ++i ){
+
+		  du2_dthetai_dthetaj = du2_dthetai_dthetajFunc( X, K_inv, u, index_b, i );
+		  for(int j = 0; j < u.rows(); ++j ){
+			  du2_dthetab_Theta(j, i) = du2_dthetai_dthetaj(j);
+			  }
+		  }
+
+	  return   du2_dthetab_Theta;
+	};
+
 
 //Lambda function to compute d^2/dTheta^2 log P(Theta | y, Sig)
 
@@ -196,6 +224,8 @@ int main(){
     Eigen::MatrixXd grad(1, DimPara);
     grad.setZero();
 
+    Eigen::MatrixXd hess(DimPara, DimPara);
+    hess.setZero();
 
     //N-R iterations
     for(int i = 0; i < 1; ++i){
@@ -213,6 +243,8 @@ int main(){
 
             grad += (y_i - u).transpose() * CovMatrixNoiseInv * -1. * du_dTheta ;
         }
+
+
 
        //X = X - HessPost(X,k, dk_dtheta ).inverse() * gradPost(X,k, dk_dtheta );
 
