@@ -72,7 +72,7 @@ double PdfEval< DimObs, DimPara, Vec>::Eval(Vec x ){
 
     for(int i = 0; i < DimObs; ++i){
 
-        K_thetaInvf[i] = MTrussFem.getDisp( dispDof_[i] );
+        K_thetaInvf[i] = MTrussFem.getDisp( i );
 
     }
 

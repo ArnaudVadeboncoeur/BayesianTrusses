@@ -37,6 +37,7 @@ int main(){
 
     constexpr unsigned DimObs  = 18;
     constexpr unsigned DimPara =  2;
+    constexpr unsigned NumTotPara =  3;
 
 
     double noiseLikStd = 0.0005;
@@ -56,7 +57,7 @@ int main(){
         }
 
 
-    Vec priorMeans(DimPara); priorMeans.setConstant(0.0025);
+    Vec priorMeans(DimPara); priorMeans.setConstant(0.025);
 
     PdfEval< DimObs, DimPara , Vec> PostFunc ( noiseLikStd, trueSampleDisp, sampleDof, priorMeans );
 
@@ -175,7 +176,7 @@ int main(){
     }
 
     negLogHess = -1. * negLogHess;
-    std::cout << negLogHess << std::endl;
+    std::cout << "LogHess\n" <<-1*negLogHess << std::endl;
    // std::cout << negLogHess.inverse() << std::endl;
     Eigen::MatrixXd stdLaplaceInv = negLogHess;
     Eigen::MatrixXd stdLaplace = negLogHess.inverse();
@@ -198,10 +199,10 @@ int main(){
     myFile.open("pdfResults.dat");
 
     double a = 0.0000001;
-    double b = 0.1;
+    double b = 0.2;
 
     double c = 0.0000001;
-    double d = 0.1;
+    double d = 0.2;
 
     int samplesX = 1e2;
     int samplesY = 1e2;
@@ -282,7 +283,10 @@ int main(){
 
 
             probDensVal = 1. / ( std::sqrt( pow(2*M_PI, 2) * negLogHess.inverse().determinant() )   ) *
-                          std::exp( - 1./2. * (xGauss - LaplaceMAP).transpose() * negLogHess * (xGauss - LaplaceMAP)    );
+                          std::exp( - 1./2. * (xGauss - LaplaceMAP).transpose() * negLogHess * (xGauss - LaplaceMAP) );
+            std::cout << " negLogHess.inverse().determinant() " << negLogHess.inverse().determinant() <<std::endl;
+            std::cout << " negLogHess " << negLogHess <<std::endl;
+
 
             EvalsLaplApp(ctr2, 0) = xGauss[0];
             EvalsLaplApp(ctr2, 1) = xGauss[1];

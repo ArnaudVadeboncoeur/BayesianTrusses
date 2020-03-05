@@ -35,7 +35,7 @@ void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSampl
     std::random_device rd;
     std::mt19937 engine( rd() );
 
-    int numSamples = 10;
+    int numSamples = 20;
 
     Eigen::VectorXi nodesFree(6); nodesFree << 1, 2, 3, 6, 7, 8;
     Eigen::VectorXi dofs( nodesFree.size() * 3 );
@@ -72,7 +72,7 @@ void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSampl
         myTrueFile << A1 << " " << A2 << " ";
         for(int j =0; j< dofs.size(); ++j){
 
-            allSamples(i, j) = trueTrussFem.getDisp( dofs[j] ) ;
+            allSamples(i, j) = trueTrussFem.getDisp( j ) ;
             myTrueFile << allSamples(i, j) << " ";
 
         }
