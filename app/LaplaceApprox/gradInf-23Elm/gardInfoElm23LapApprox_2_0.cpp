@@ -52,7 +52,7 @@ int main(){
         }
 
     //init prior information
-    double noiseLikStd = 0.0005;
+    double noiseLikStd = 0.0002;
 
     Eigen::VectorXd priorMeans(DimPara); priorMeans.setConstant(0.025);
 
@@ -227,7 +227,7 @@ int main(){
 //Newton Ralphson to find MAP--------------------------------------------
 
 
-    Eigen::VectorXd X(DimPara); X.setConstant(0.1);
+    Eigen::VectorXd X(DimPara); X.setConstant(0.04);
     Eigen::MatrixXd k(DimObs, DimObs);
     Eigen::MatrixXd k_inv(DimObs, DimObs);
     Eigen::MatrixXd dk_dtheta(DimPara, DimPara);
@@ -252,9 +252,12 @@ int main(){
 
     std::ofstream NRFile;
     NRFile.open("Newton-RalphsonOpt.dat");
+    for(int d = 0; d < X.size(); ++d){
+               NRFile << X[d] << " ";
+           } NRFile << "\n";
 
     //N-R iterations
-    int maxIter = 100;
+    int maxIter = 20;
     for(int i = 0; i < maxIter; ++i){
 
 //        X[0] = 0.0528428;
@@ -310,7 +313,11 @@ int main(){
 //       X = X + hess.inverse() * grad.transpose();
        if( i == maxIter - 1){ LaplaceHess_inv = -1 * hess.inverse(); }
        //X = X - 0.01*hess.inverse() * grad.transpose();
-       X = X + 0.001 * grad.transpose();
+
+
+       X = X + 0.00005 * grad.transpose();
+
+
        //std::cout << "X \n" << X << "\n\n";
 
        for(int d = 0; d < X.size(); ++d){

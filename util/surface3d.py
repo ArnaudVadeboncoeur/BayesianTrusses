@@ -58,7 +58,7 @@ if ndim < 3 :
 #print(data)
 x = data[:, 0]
 y = data[:, 1]
-X, Y = np.meshgrid(x, y)
+#X, Y = np.meshgrid(x, y)
 Z = data[:, 2]
 
 

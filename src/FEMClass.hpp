@@ -76,11 +76,13 @@ public:
     double getForce(int dofIndex)        { return force_(dofIndex, 0) ; }
     Eigen::MatrixXd getForce(   )        { return force_ ; }
 
-    double getK(int dofi, int dofj)    { return S_(dofi, dofj) ; }
-    Eigen::MatrixXd getK(   )          { return S_ ; }
+    double getK(int dofi, int dofj)      { return S_(dofi, dofj) ; }
+    Eigen::MatrixXd getK(   )            { return S_ ; }
 
     double getA(int memberIndex )        { return A_( memberIndex ); }
-    Eigen::VectorXd getA (   )           {return A_; }
+    Eigen::VectorXd getA (   )           { return A_; }
+
+    std::vector< int > getFreeDof( )     { return freeDof_; }
 
     ~FEMClass ( ) { };
 
@@ -103,12 +105,14 @@ private:
     Eigen::MatrixXi memberData_ ;
     Eigen::MatrixXd force_ ;
 
+    std::vector < double > dofK_ ;
+
     //Created Variables and containers
     std::vector< Eigen::MatrixXd >  vectorOfK_ ;
     std::vector< Eigen::MatrixXd >  vectorOfLocalK_ ;
     std::vector< Eigen::MatrixXd >  vectorOfT_ ;
     std::vector< std::vector<int> > dofKgs_ ;
-    std::vector<int> freeDof_;
+    std::vector< int > freeDof_;
 
     Eigen::VectorXd disp_;
     Eigen::VectorXd allDisp_;
@@ -173,12 +177,14 @@ void FEMClass::FEMClassReset( bool verbosity){
     vectorOfQ_.resize( numberElms_ );
     vectorOfV_.resize( numberElms_ );
 
+    dofK_.clear();
+
     if(verbosity_){std::cout<<"Done Creating local containers"<<'\n';}
     return;
 }
 
 void FEMClass::assembleS(){
-    //---------------------------Compuete all Global K matrices-----------------------------//
+    //---------------------------Compute all Global K matrices-----------------------------//
 
     for(int i =0; i < numberElms_ ; ++i){
         Eigen::MatrixXd Ki(2,2);

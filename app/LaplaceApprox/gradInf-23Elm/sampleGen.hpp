@@ -32,7 +32,7 @@ void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSampl
     std::ofstream myTrueFile;
     myTrueFile.open("trueResults.dat", std::ios::trunc);
 
-    std::normal_distribution<double> normal( 0, 0.0005 );
+    std::normal_distribution<double> normal( 0, 0.0002 );
 
     std::random_device rd;
     std::mt19937 engine( rd() );
@@ -61,8 +61,12 @@ void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSampl
 
     for(int i = 0; i < numSamples ; i++){
 
-        double A1 = 0.06 + normal( engine ) ;
-        double A2 = 0.04 + normal( engine ) ;
+//        double A1 = 0.06 + normal( engine ) ;
+//        double A2 = 0.04 + normal( engine ) ;
+
+
+        double A1 = 0.06 ;
+        double A2 = 0.04 ;
 
         trueTrussFem.modA(0, A1);
         trueTrussFem.modA(1, A2);
@@ -74,7 +78,7 @@ void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSampl
         myTrueFile << A1 << " " << A2 << " ";
         for(int j =0; j< dofs.size(); ++j){
 
-            allSamples(i, j) = trueTrussFem.getDisp( j ) ;
+            allSamples(i, j) = trueTrussFem.getDisp( j ) + normal( engine ) ;
             myTrueFile << allSamples(i, j) << " ";
 
         }
