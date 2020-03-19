@@ -12,8 +12,8 @@
 
 #include "../../../src/FEMClass.hpp"
 
-//#include "ThreeDTruss23Elm.hpp"
-#include "ThreeDTruss3Elm.hpp"
+#include "ThreeDTruss23Elm.hpp"
+//#include "ThreeDTruss3Elm.hpp"
 
 
 
@@ -24,7 +24,8 @@ public:
 
     PdfEval ( ) { };
 
-    PdfEval ( double noiseLik, Eigen::MatrixXd trueSampleDisp, Eigen::VectorXi ObsIndex, Vec priorMean, double priorStd ) ;
+    PdfEval ( double noiseLik, Eigen::MatrixXd trueSampleDisp, Eigen::VectorXi ObsIndex,
+              Vec priorMean, const Eigen::MatrixXd& PriorCovMatrix ) ;
 
     double Eval( Vec x);
 
@@ -35,7 +36,7 @@ private:
     Eigen::MatrixXd trueSampleDisp_;
     double noiseLikStd_;
     Eigen::VectorXi ObsIndex_ ;
-    double priorStd_;
+    Eigen::MatrixXd PriorCovMatrix_;
     Vec priorMean_;
 
 };
@@ -43,13 +44,13 @@ private:
 template < unsigned DimObs, unsigned DimPara, typename Vec >
 PdfEval < DimObs, DimPara, Vec>::PdfEval( double noiseLikStd, Eigen::MatrixXd trueSampleDisp,
                                           Eigen::VectorXi ObsIndex, Vec priorMean,
-                                          double priorStd ){
+                                          const Eigen::MatrixXd& PriorCovMatrix ){
 
     noiseLikStd_ = noiseLikStd;
     trueSampleDisp_ = trueSampleDisp;
     ObsIndex_ = ObsIndex;
     priorMean_ = priorMean;
-    priorStd_ = priorStd;
+    PriorCovMatrix_ = PriorCovMatrix;
 }
 
 
@@ -130,13 +131,9 @@ double PdfEval< DimObs, DimPara, Vec>::Eval(Vec x ){
         theta_0[i] = priorMean_[i];
     }
 
-    Eigen::MatrixXd PriorCovMatrix (DimPara,DimPara);
 
-    PriorCovMatrix.setIdentity();
-    PriorCovMatrix = PriorCovMatrix * pow(priorStd_, 2);
-
-    logLik += - 1./2.* std::log( PriorCovMatrix.determinant() )
-              - 1./2.* (theta - theta_0).transpose() * PriorCovMatrix.inverse() * (theta - theta_0) ;
+    logLik += - 1./2.* std::log( PriorCovMatrix_.determinant() )
+              - 1./2.* (theta - theta_0).transpose() * PriorCovMatrix_.inverse() * (theta - theta_0) ;
 
     return logLik;
     }

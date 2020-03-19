@@ -20,8 +20,8 @@
 #include <cmath>
 #include <math.h>
 
-//#include "ThreeDTruss23Elm.hpp"
-#include "ThreeDTruss3Elm.hpp"
+#include "ThreeDTruss23Elm.hpp"
+//#include "ThreeDTruss3Elm.hpp"
 
 #include "sampleGen.hpp"
 #include "PdfEval.hpp"
@@ -33,27 +33,27 @@ int main(){
 
     Eigen::MatrixXd trueSampleDisp = std::get<0>( trueSamples );
 
-    constexpr unsigned DimK       =  3 ;
-    constexpr unsigned DimObs     =  3 ;//1 node 3->x,y,z
+    constexpr unsigned DimK       =  18 ;
+    constexpr unsigned DimObs     =  18 ;//1 node 3->x,y,z
     constexpr unsigned DimPara    =  3 ;
 
-    constexpr unsigned NumTotPara =  3;
+    constexpr unsigned NumTotPara =  4;
 
     std::vector<int> paraIndex {0, 1};
 
     std::cout << "Here-main" << std::endl;
 
     //Index of dofs observed
-//    Eigen::VectorXi nodesObs( 1 ); nodesObs << 2;
-//        Eigen::VectorXi ObsIndex( nodesObs.size() * 3 );
-//        for(int j = 0; j < nodesObs.size(); ++j){
-//
-//            ObsIndex[ j*3 + 0] = nodesObs[j]*3 + 0;
-//            ObsIndex[ j*3 + 1] = nodesObs[j]*3 + 1;
-//            ObsIndex[ j*3 + 2] = nodesObs[j]*3 + 2;
-//        }
+    Eigen::VectorXi nodesObs( 6 ); nodesObs << 1, 2, 3, 6, 7, 8 ;
+        Eigen::VectorXi ObsIndex( nodesObs.size() * 3 );
+        for(int j = 0; j < nodesObs.size(); ++j){
 
-    Eigen::VectorXi ObsIndex( DimObs ); ObsIndex << 9, 10, 11;
+            ObsIndex[ j*3 + 0] = nodesObs[j]*3 + 0;
+            ObsIndex[ j*3 + 1] = nodesObs[j]*3 + 1;
+            ObsIndex[ j*3 + 2] = nodesObs[j]*3 + 2;
+        }
+
+    //Eigen::VectorXi ObsIndex( DimObs ); ObsIndex << 9, 10, 11;
 
     std::cout << "Here" << std::endl;
 
@@ -61,18 +61,21 @@ int main(){
     double noiseLikStd = 0.0002;
 
     Eigen::VectorXd priorMeans(DimPara); priorMeans.setConstant(0.07);
-    double priorStd = 0.02;
+    double priorStd = 0.1;
 
-    PdfEval< DimObs, DimPara , Eigen::VectorXd> PostFunc ( noiseLikStd, trueSampleDisp, ObsIndex, priorMeans, priorStd );
+    Eigen::MatrixXd PriorCovMatrix (DimPara,DimPara);
+        Eigen::VectorXd priorStdVec(DimPara); priorStdVec << 0.1, 0.1, 0.1;
+        for(int i = 0; i < priorStdVec.size(); ++i){
+            PriorCovMatrix(i, i) = pow(priorStdVec[i], 2) ;//* 0.1;
+        }
+
+    PdfEval< DimObs, DimPara , Eigen::VectorXd> PostFunc ( noiseLikStd, trueSampleDisp, ObsIndex, priorMeans, PriorCovMatrix );
 
     Eigen::MatrixXd CovMatrixNoise (DimObs,DimObs);
     CovMatrixNoise.setIdentity();
     CovMatrixNoise = CovMatrixNoise * std::pow(noiseLikStd, 2);
     Eigen::MatrixXd CovMatrixNoiseInv = CovMatrixNoise.inverse();
 
-    Eigen::MatrixXd PriorCovMatrix (DimPara,DimPara);
-    PriorCovMatrix.setIdentity();
-    PriorCovMatrix = PriorCovMatrix * pow(priorStd, 2) ;//* 0.1;
     Eigen::MatrixXd PriorCovMatrixInv = PriorCovMatrix.inverse();
 
     //init FEM model
@@ -237,7 +240,7 @@ int main(){
 
 
     Eigen::VectorXd X(DimPara); X.setConstant(0.04);
-    double Null= 1e-14 ;
+    double Null = 1e-14 ;
     Eigen::MatrixXd k(DimK, DimK);
     Eigen::MatrixXd k_inv(DimK, DimK);
     Eigen::MatrixXd dk_dtheta(DimPara, DimPara);
@@ -282,8 +285,8 @@ int main(){
 
     std::ofstream NRFile;
     NRFile.open("Newton-RalphsonOpt.dat");
-    for(int d = 0; d < X.size(); ++d){
-               NRFile << X[d] << " ";
+    for(int d = 0; d < paraIndex.size(); ++d){
+               NRFile << X[paraIndex[d]] << " ";
            } NRFile << "\n";
 
     //N-R iterations
@@ -309,9 +312,9 @@ int main(){
         //std::cout << "Computed u etc." << std::endl;
 
 
-
-
         grad = - ( X - priorMeans ).transpose() * PriorCovMatrixInv;
+
+        //std::cout << grad << " " << std::endl;
         //std::cout << "Computed grad prior term" << std::endl;
         for(int j = 0; j < trueSampleDisp.rows(); ++j){
 
@@ -324,10 +327,11 @@ int main(){
 
         bool gradNull; gradNull = true;
         for(int j = 0; j < grad.size(); ++j){
-            if( std::abs( grad(0, j) ) > Null ){ gradNull = false; }
+            if( std::abs( grad(0, j) ) > Null ){ gradNull = false; break; }
         }
         if( gradNull ){
             std::cout << "gradNull\n" << grad << std::endl;
+            grad.setConstant(1e-10);
             break ;
         }
 
@@ -338,14 +342,21 @@ int main(){
        //X = X - 0.01*hess.inverse() * grad.transpose();
 
 
-       X = X + 0.000008 * grad.transpose();
+       X = X + 0.00005 * grad.transpose();
+
+       for(int j = 0; j < X.size(); ++j){
+           if(X[j] < 0.){
+               X[j] = 0;
+           }
+       }
+
        //X = X + 0.00005 * grad.transpose();
 
 
        //std::cout << "X \n" << X << "\n\n";
 
-       for(int d = 0; d < X.size(); ++d){
-           NRFile << X[d] << " ";
+       for(int d = 0; d < paraIndex.size(); ++d){
+           NRFile << X[paraIndex[d]] << " ";
        } NRFile << "\n";
     }
 
@@ -435,11 +446,11 @@ int main(){
     std::ofstream myFile;
     myFile.open("pdfResults.dat");
 
-    double a = 0;
-    double b = 0.08;
+    double a = 0;//-0.08;
+    double b = 0.5;
 
-    double c = 0;
-    double d = 0.08;
+    double c = 0;//-0.08;
+    double d = 0.5;
 
     int samplesX = 1 * 1e2;
     int samplesY = 1 * 1e2;
@@ -450,7 +461,7 @@ int main(){
     double dy = (double) (d - c) / samplesY;
     //double dy = 1.;
 
-    double bottomLim = 0.0;
+    double bottomLim = 0;
 
     //Eigen::MatrixXd evaluations ( samplesX * samplesY , 2);
     Eigen::MatrixXd evaluations ( samplesX * samplesY , dimEval + 1);
@@ -490,6 +501,7 @@ int main(){
 
     for(int i = 0; i < evaluations.rows(); ++i){
         evaluations(i, dimEval) = evaluations(i, dimEval) / Vol;
+        //std::cout << evaluations(i, dimEval) << std::endl;
         if( evaluations(i, dimEval) > bottomLim ){
             myFile << evaluations(i, 0) << " " << evaluations(i, 1) << " " << evaluations(i, 2) << std::endl;
         }

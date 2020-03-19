@@ -18,6 +18,7 @@ TARGET = compiled.exe
 # find the sources and object files
 CPPFILES = $(wildcard *.cpp)
 CPPOBJS = $(CPPFILES:.cpp=.o)
+DATFILES = $(wildcard *.dat)
 
 #define sources and objects
 SRCS = $(CPPFILES)
@@ -42,7 +43,7 @@ $(TARGET): $(OBJS)
 	$(CXX) $(CPPFLAGS) -c $<
 
 clean:
-	$(RM) $(OBJS) $(TARGET)
+	$(RM) $(OBJS) $(TARGET) $(DATFILES)
 	
 # implicit rule for makin object files
 #.cpp.o:	
