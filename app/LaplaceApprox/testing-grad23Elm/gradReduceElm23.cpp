@@ -34,41 +34,43 @@ int main(){
     Eigen::MatrixXd trueSampleDisp = std::get<0>( trueSamples );
 
     constexpr unsigned DimK       =  18 ;
-    constexpr unsigned DimObs     =  18 ;//1 node 3->x,y,z
-    constexpr unsigned DimPara    =  3 ;
+    constexpr unsigned DimObs     =  1 ;//1 node 3->x,y,z
+    constexpr unsigned DimPara    =  2 ;
 
-    constexpr unsigned NumTotPara =  4;
+    constexpr unsigned NumTotPara =  3;
 
+    //std::vector<int> paraIndex {0, 1};
     std::vector<int> paraIndex {0, 1};
+
 
     std::cout << "Here-main" << std::endl;
 
     //Index of dofs observed
-    Eigen::VectorXi nodesObs( 6 ); nodesObs << 1, 2, 3, 6, 7, 8 ;
-        Eigen::VectorXi ObsIndex( nodesObs.size() * 3 );
-        for(int j = 0; j < nodesObs.size(); ++j){
+//    Eigen::VectorXi nodesObs( 6 ); nodesObs << 1, 2, 3, 6, 7, 8 ;
+//        Eigen::VectorXi ObsIndex( nodesObs.size() * 3 );
+//        for(int j = 0; j < nodesObs.size(); ++j){
+//
+//            ObsIndex[ j*3 + 0] = nodesObs[j]*3 + 0;
+//            ObsIndex[ j*3 + 1] = nodesObs[j]*3 + 1;
+//            ObsIndex[ j*3 + 2] = nodesObs[j]*3 + 2;
+//        }
 
-            ObsIndex[ j*3 + 0] = nodesObs[j]*3 + 0;
-            ObsIndex[ j*3 + 1] = nodesObs[j]*3 + 1;
-            ObsIndex[ j*3 + 2] = nodesObs[j]*3 + 2;
-        }
-
-    //Eigen::VectorXi ObsIndex( DimObs ); ObsIndex << 9, 10, 11;
-
-    std::cout << "Here" << std::endl;
+    Eigen::VectorXi ObsIndex( DimObs ); ObsIndex << 8;
+    std::cout << "Here-2" << std::endl;
 
     //init prior information
-    double noiseLikStd = 0.0002;
+    double noiseLikStd = 0.0001;
 
-    Eigen::VectorXd priorMeans(DimPara); priorMeans.setConstant(0.07);
+    Eigen::VectorXd priorMeans(DimPara); priorMeans.setConstant(0.03);
     double priorStd = 0.1;
 
-    Eigen::MatrixXd PriorCovMatrix (DimPara,DimPara);
-        Eigen::VectorXd priorStdVec(DimPara); priorStdVec << 0.1, 0.1, 0.1;
+    Eigen::MatrixXd PriorCovMatrix (DimPara,DimPara); PriorCovMatrix.setZero();
+    //std::cout << PriorCovMatrix << std::endl;
+        Eigen::VectorXd priorStdVec(DimPara); priorStdVec.setConstant(0.1);
         for(int i = 0; i < priorStdVec.size(); ++i){
             PriorCovMatrix(i, i) = pow(priorStdVec[i], 2) ;//* 0.1;
         }
-
+    std::cout << PriorCovMatrix << std::endl;
     PdfEval< DimObs, DimPara , Eigen::VectorXd> PostFunc ( noiseLikStd, trueSampleDisp, ObsIndex, priorMeans, PriorCovMatrix );
 
     Eigen::MatrixXd CovMatrixNoise (DimObs,DimObs);
@@ -87,6 +89,7 @@ int main(){
     std::vector<int> dofK = TrussFem.getFreeDof();
     Eigen::MatrixXd f = TrussFem.getForce();
     TrussFem.FEMClassReset(false);
+    std::cout << "Here2_4" << std::endl;
 
 //--------------------------------------------------------------------------------------
 
@@ -239,7 +242,7 @@ int main(){
 //Newton Ralphson to find MAP--------------------------------------------
 
 
-    Eigen::VectorXd X(DimPara); X.setConstant(0.04);
+    Eigen::VectorXd X(DimPara); X.setConstant(0.1);
     double Null = 1e-14 ;
     Eigen::MatrixXd k(DimK, DimK);
     Eigen::MatrixXd k_inv(DimK, DimK);
@@ -276,6 +279,7 @@ int main(){
         }
     }
     std::cout << "Done Creating L" << std::endl;
+    //std::cout << L << std::endl;
 
 //    std::cout << "dofK\n";
 //    for(int i = 0; i < dofK.size(); ++i){ std::cout << dofK[i] << std::endl;}
@@ -289,8 +293,9 @@ int main(){
                NRFile << X[paraIndex[d]] << " ";
            } NRFile << "\n";
 
+
     //N-R iterations
-    int maxIter = 100;
+    int maxIter = 1000;
     for(int i = 0; i < maxIter; ++i){
 
 //        X[0] = 0.0528428;
@@ -342,7 +347,7 @@ int main(){
        //X = X - 0.01*hess.inverse() * grad.transpose();
 
 
-       X = X + 0.00005 * grad.transpose();
+       X = X + 0.0001 * grad.transpose();
 
        for(int j = 0; j < X.size(); ++j){
            if(X[j] < 0.){
@@ -447,10 +452,10 @@ int main(){
     myFile.open("pdfResults.dat");
 
     double a = 0;//-0.08;
-    double b = 0.5;
+    double b = 0.12;
 
     double c = 0;//-0.08;
-    double d = 0.5;
+    double d = 0.1;
 
     int samplesX = 1 * 1e2;
     int samplesY = 1 * 1e2;
@@ -461,7 +466,7 @@ int main(){
     double dy = (double) (d - c) / samplesY;
     //double dy = 1.;
 
-    double bottomLim = 0;
+    double bottomLim = -9e40;
 
     //Eigen::MatrixXd evaluations ( samplesX * samplesY , 2);
     Eigen::MatrixXd evaluations ( samplesX * samplesY , dimEval + 1);
@@ -478,6 +483,7 @@ int main(){
 
 
             LikVals =  PostFunc.Eval( xPost ) ;
+            //std::cout << LikVals << std::endl;
 
 
             if(LikVals > maxVal){

@@ -62,7 +62,7 @@ double PdfEval< DimObs, DimPara, Vec>::Eval(Vec x ){
 //
 //            return -9e30;
 //        }}
-
+    //std::cout << "Here pdfEval1" << std::endl;
     TupleTrussDef MTrussDef;
     MTrussDef = InitialTrussAssignment( );
     FEMClass MTrussFem( false, MTrussDef );
@@ -101,6 +101,8 @@ double PdfEval< DimObs, DimPara, Vec>::Eval(Vec x ){
     //  p(y|Theta, Sigma)
     logLik += - (double) trueSampleDisp_.rows() / 2.0 * std::log( CovMatrixNoise.determinant() ) ;
 
+    //std::cout << trueSampleDisp_ << "\n\n";
+
     Eigen::VectorXd y_iVec (DimObs);
     for(int i = 0; i < trueSampleDisp_.rows(); ++i){
 
@@ -109,6 +111,7 @@ double PdfEval< DimObs, DimPara, Vec>::Eval(Vec x ){
         }
 
         logLik += - 1./2. * (y_iVec - K_thetaInvf).transpose() * CovMatrixNoise.inverse() * (y_iVec - K_thetaInvf)   ;
+
 
     }
 
