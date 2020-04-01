@@ -34,45 +34,41 @@ int main(){
 
     Eigen::MatrixXd trueSampleDisp = std::get<0>( trueSamples );
 
-    constexpr unsigned DimK       =  30 ;
-    constexpr unsigned DimObs     =  6 ;//1 node 3->x,y,z
+    std::cout << "Here -- DTRUSSDEF37Elm_HPP_ worked" << std::endl;
+
+    constexpr unsigned DimK       =  30;
+    //constexpr unsigned DimK       =  3;
+    constexpr unsigned DimObs     =  12 ;//1 node 3->x,y,z
     constexpr unsigned DimPara    =  2 ;
 
-    constexpr unsigned NumTotPara =  3;
+    constexpr unsigned NumTotPara =  37;
 
-    //std::vector<int> paraIndex {0, 1};
-    std::vector<int> paraIndex {0, 1};
+    std::vector<int> paraIndex     {13, 16};
+    std::vector<int> plotParaIndex {0, 1};
 
 
     std::cout << "Here-main" << std::endl;
 
     //Index of dofs observed
-//    Eigen::VectorXi nodesObs( 6 ); nodesObs << 1, 2, 3, 6, 7, 8 ;
-//        Eigen::VectorXi ObsIndex( nodesObs.size() * 3 );
-//        for(int j = 0; j < nodesObs.size(); ++j){
-//
-//            ObsIndex[ j*3 + 0] = nodesObs[j]*3 + 0;
-//            ObsIndex[ j*3 + 1] = nodesObs[j]*3 + 1;
-//            ObsIndex[ j*3 + 2] = nodesObs[j]*3 + 2;
-//        }
+    Eigen::VectorXi nodesObs( 4 ); nodesObs <<  2, 4, 9, 11;
+    //Eigen::VectorXi nodesObs( 1 ); nodesObs <<  1;
+        Eigen::VectorXi ObsIndex( nodesObs.size() * 3 );
+        for(int j = 0; j < nodesObs.size(); ++j){
 
-//    Eigen::VectorXi nodesObs( 10 ); nodesObs << 1, 2, 3, 4, 5, 8, 9, 10, 11, 12 ;
-//            Eigen::VectorXi ObsIndex( nodesObs.size() * 3 );
-//            for(int j = 0; j < nodesObs.size(); ++j){
-//
-//                ObsIndex[ j*3 + 0] = nodesObs[j]*3 + 0;
-//                ObsIndex[ j*3 + 1] = nodesObs[j]*3 + 1;
-//                ObsIndex[ j*3 + 2] = nodesObs[j]*3 + 2;
-//            }
-            Eigen::VectorXi ObsIndex( DimObs ); ObsIndex << 6, 7, 8, 27, 28, 29;
+            ObsIndex[ j*3 + 0] = nodesObs[j]*3 + 0;
+            ObsIndex[ j*3 + 1] = nodesObs[j]*3 + 1;
+            ObsIndex[ j*3 + 2] = nodesObs[j]*3 + 2;
+        }
 
-    //Eigen::VectorXi ObsIndex( DimObs ); ObsIndex << 6, 7, 8, 21, 22, 23;
+    //Eigen::VectorXi ObsIndex( DimObs ); ObsIndex << 6, 7, 8, 27, 28, 29;
+    //Eigen::VectorXi ObsIndex( 3 ); ObsIndex << 9, 10, 11;
+
     std::cout << "Here-2" << std::endl;
 
     //init prior information
-    double noiseLikStd = 0.0005;
+    double noiseLikStd = 0.0003;
 
-    Eigen::VectorXd priorMeans(DimPara); priorMeans.setConstant(0.03);
+    Eigen::VectorXd priorMeans(DimPara); priorMeans.setConstant(0.06);
     double priorStd = 0.1;
 
     Eigen::MatrixXd PriorCovMatrix (DimPara,DimPara); PriorCovMatrix.setZero();
@@ -81,13 +77,15 @@ int main(){
         for(int i = 0; i < priorStdVec.size(); ++i){
             PriorCovMatrix(i, i) = pow(priorStdVec[i], 2) ;//* 0.1;
         }
-    std::cout << PriorCovMatrix << std::endl;
-    PdfEval< DimObs, DimPara , Eigen::VectorXd> PostFunc ( noiseLikStd, trueSampleDisp, ObsIndex, priorMeans, PriorCovMatrix );
+
+    PdfEval< DimObs, DimPara , Eigen::VectorXd> PostFunc ( noiseLikStd, trueSampleDisp, paraIndex , ObsIndex, priorMeans, PriorCovMatrix );
 
     Eigen::MatrixXd CovMatrixNoise (DimObs,DimObs);
     CovMatrixNoise.setIdentity();
     CovMatrixNoise = CovMatrixNoise * std::pow(noiseLikStd, 2);
     Eigen::MatrixXd CovMatrixNoiseInv = CovMatrixNoise.inverse();
+
+    std::cout << CovMatrixNoise << std::endl;
 
     Eigen::MatrixXd PriorCovMatrixInv = PriorCovMatrix.inverse();
 
@@ -106,9 +104,9 @@ int main(){
 
    //Lambda function to compute u(Theta)
     std::function < Eigen::VectorXd ( const Eigen::VectorXd) > uTheta;
-    uTheta = [ &TrussFem ](const Eigen::VectorXd& X ){
-        for(int j = 0; j < X.size(); ++j){
-            TrussFem.modA(j, X[j] );
+    uTheta = [ &TrussFem, paraIndex ](const Eigen::VectorXd& X ){
+        for(int j = 0; j < paraIndex.size(); ++j){
+            TrussFem.modA(paraIndex[j], X[j] );
         }
         TrussFem.assembleS();
         TrussFem.computeDisp();
@@ -123,8 +121,8 @@ int main(){
     KThetaFunc = [ &TrussFem, paraIndex ]( Eigen::VectorXd X ){
         Eigen::MatrixXd K;
         //produce k(theta)
-        for(int j = 0; j < X.size(); ++j){
-            TrussFem.modA(j, X[j]);
+        for(int j = 0; j < paraIndex.size(); ++j){
+            TrussFem.modA(paraIndex[j], X[j]);
         }
         TrussFem.assembleS();
         K = TrussFem.getK();
@@ -135,14 +133,14 @@ int main(){
 
     //Lambda function to compute dK/dTheta_i
     std::function < Eigen::MatrixXd (Eigen::VectorXd, int) > dKdTheta_iFunc;
-    dKdTheta_iFunc = [ &TrussFem, NumTotPara ]( Eigen::VectorXd X, int index ){
+    dKdTheta_iFunc = [ &TrussFem, NumTotPara, paraIndex ]( Eigen::VectorXd X, int index ){
         TrussFem.FEMClassReset(false);
         Eigen::MatrixXd dKdtheta_i;
         //produce  dKdTheta_i
         for(int j = 0; j < NumTotPara; ++j){
             TrussFem.modA(j, 0 );
         }
-        TrussFem.modA(index, 1 );
+        TrussFem.modA(paraIndex[index], 1 );
         TrussFem.assembleS( );
         dKdtheta_i = TrussFem.getK();
         TrussFem.FEMClassReset(false);
@@ -152,10 +150,9 @@ int main(){
 
    //Labmda function to compute dudtheta_i
    std::function < Eigen::VectorXd      ( Eigen::VectorXd, Eigen::MatrixXd,
-                                          Eigen::MatrixXd, Eigen::VectorXd, int ) > dudtheta_iFunc;
+                                          Eigen::MatrixXd, Eigen::VectorXd ) > dudtheta_iFunc;
    dudtheta_iFunc = [ ](   const Eigen::VectorXd& X,          const Eigen::MatrixXd& K_inv,
-                           const Eigen::MatrixXd& dKdtheta_b, const Eigen::VectorXd& u,
-                           int indexTheta ){
+                           const Eigen::MatrixXd& dKdtheta_b, const Eigen::VectorXd& u ){
 
         Eigen::VectorXd dudtheta_b( X.rows() );
         dudtheta_b = - K_inv * dKdtheta_b * u ;
@@ -177,7 +174,7 @@ int main(){
        for(int i = 0; i < X.rows(); ++i ){
 
            //std::cout << "dKdTheta_iFunc( X, i) \n" <<dKdTheta_iFunc( X, i) << "\n\n";
-           dudtheta_i = dudtheta_iFunc( X, K_inv, dKdTheta_iFunc( X, i), u, i );
+           dudtheta_i = dudtheta_iFunc( X, K_inv, dKdTheta_iFunc( X, i), u );
            for(int j = 0; j < u.rows(); ++j ){
                dudTheta(j, i) = dudtheta_i(j);
                }
@@ -204,8 +201,8 @@ int main(){
 	 dK_dtheta_i = dKdTheta_iFunc( X, index_i);
 	 dK_dtheta_j = dKdTheta_iFunc( X, index_j);
 
-	 dudtheta_i = dudtheta_iFunc( X, K_inv, dK_dtheta_i, u,index_i );
-	 dudtheta_j = dudtheta_iFunc( X, K_inv, dK_dtheta_j, u,index_j );
+	 dudtheta_i = dudtheta_iFunc( X, K_inv, dK_dtheta_i, u );
+	 dudtheta_j = dudtheta_iFunc( X, K_inv, dK_dtheta_j, u );
 
 	 du2_dthetai_dthetaj = - K_inv * ( dK_dtheta_i * dudtheta_j + dK_dtheta_j * dudtheta_i );
 
@@ -253,7 +250,7 @@ int main(){
 //Newton Ralphson to find MAP--------------------------------------------
 
 
-    Eigen::VectorXd X(DimPara); X.setConstant(0.1);
+    Eigen::VectorXd X(DimPara); X.setConstant(0.075);
     double Null = 1e-14 ;
     Eigen::MatrixXd k(DimK, DimK);
     Eigen::MatrixXd k_inv(DimK, DimK);
@@ -278,19 +275,39 @@ int main(){
     Eigen::MatrixXd hess_b( DimPara, 1 );
     hess.setZero();
 
+
+    std::cout << "Not Done Creating L" << std::endl;
+    //std::cout << KThetaFunc ( X ) << std::endl;
+    std::cout <<"(KThetaFunc ( X )).rows() " << (KThetaFunc ( X )).rows() << std::endl;
+    std::cout <<"(KThetaFunc ( X )).cols() " << (KThetaFunc ( X )).cols() << std::endl;
     //creat K to Obsversed Matrix L
     Eigen::MatrixXd L( DimObs , DimK ); L.setZero();
 
+
+
+//    std::cout << "ObsIndex" << std::endl;
+//    for(int i = 0; i < ObsIndex.size(); ++i){
+//            std::cout  << ObsIndex[i]<<" " <<i << std::endl;
+//        }
+//    for(int i = 0; i < dofK.size(); ++i){
+//        std::cout  << dofK[i]<<" "<< i << std::endl;
+//    }
+
+
+    //std::cout << "dofK" << std::endl;
+
     for(int i = 0; i < ObsIndex.size(); ++i ){
         for( int j = 0; j < dofK.size(); ++j ){
-            if(dofK[j] == ObsIndex[i]){
+            if( dofK[j] == ObsIndex[i] ){
                 L(i, j) = 1;
                 break;
             }
         }
     }
     std::cout << "Done Creating L" << std::endl;
-    //std::cout << L << std::endl;
+    std::cout << L << std::endl;
+    std::cout << "L.rows() " << L.rows() << std::endl;
+    std::cout << "L.cols() " << L.cols() << std::endl;
 
 //    std::cout << "dofK\n";
 //    for(int i = 0; i < dofK.size(); ++i){ std::cout << dofK[i] << std::endl;}
@@ -300,13 +317,13 @@ int main(){
 
     std::ofstream NRFile;
     NRFile.open("Newton-RalphsonOpt.dat");
-    for(int d = 0; d < paraIndex.size(); ++d){
-               NRFile << X[paraIndex[d]] << " ";
+    for(int d = 0; d < plotParaIndex.size(); ++d){
+               NRFile << X[ plotParaIndex[d] ] << " ";
            } NRFile << "\n";
 
 
     //N-R iterations
-    int maxIter = 1000;
+    int maxIter = 1e4;
     for(int i = 0; i < maxIter; ++i){
 
 //        X[0] = 0.0528428;
@@ -332,6 +349,7 @@ int main(){
 
         //std::cout << grad << " " << std::endl;
         //std::cout << "Computed grad prior term" << std::endl;
+
         for(int j = 0; j < trueSampleDisp.rows(); ++j){
 
             for(int k = 0; k <trueSampleDisp.cols();++k ){
@@ -358,7 +376,7 @@ int main(){
        //X = X - 0.01*hess.inverse() * grad.transpose();
 
 
-       X = X + 0.000005 * grad.transpose();
+       X = X + 0.0000005 * grad.transpose();
 
        for(int j = 0; j < X.size(); ++j){
            if(X[j] < 0.){
@@ -371,22 +389,25 @@ int main(){
 
        //std::cout << "X \n" << X << "\n\n";
 
-       for(int d = 0; d < paraIndex.size(); ++d){
-           NRFile << X[paraIndex[d]] << " ";
+       for(int d = 0; d < plotParaIndex.size(); ++d){
+           NRFile << X[ plotParaIndex[d] ] << " ";
        } NRFile << "\n";
     }
 
-    for(int b = 0; b < DimPara; ++b){
+    for(int i = 0; i < paraIndex.size() ; ++i){
 
         thetaHat_b.setZero();
-        thetaHat_b( b, 0 ) = 1;
+        thetaHat_b( i, 0 ) = 1;
         hess_b = -1 * thetaHat_b.transpose( ) * PriorCovMatrixInv;
 
-        du_dtheta_b = L * dudtheta_iFunc( X, k_inv, dKdTheta_iFunc (X,  b),  u_n , b )  ;
+      //du_dtheta_b = L * dudtheta_iFunc( X, k_inv, dKdTheta_iFunc (X,  paraIndex[i] ),  u_n )  ;
+        du_dtheta_b = L * dudtheta_iFunc( X, k_inv, dKdTheta_iFunc (X,  i ),  u_n )  ;
 
         // compute du2_dthetab_dTheta and drop unobserved dofs
 
-        du2_dthetab_dTheta = L * du2_dthetab_ThetaFunc( X,  k_inv, u_n , b );
+        //du2_dthetab_dTheta = L * du2_dthetab_ThetaFunc( X,  k_inv, u_n , paraIndex[i] );
+        du2_dthetab_dTheta = L * du2_dthetab_ThetaFunc( X,  k_inv, u_n , i );
+
 
         for(int j = 0; j < trueSampleDisp.rows(); ++j){
 
@@ -400,7 +421,7 @@ int main(){
         }
         for(int d = 0; d < DimPara; ++d){
 
-            hess( b, d) = hess_b( 0, d );
+            hess( i, d) = hess_b( 0, d );
         }
     }
     LaplaceHess_inv = -1 * hess.inverse();
@@ -462,11 +483,11 @@ int main(){
     std::ofstream myFile;
     myFile.open("pdfResults.dat");
 
-    double a = -0.01;//-0.08;
-    double b = 0.12;
+    double a = 0.01;//-0.08;
+    double b = 0.08;
 
-    double c = -0.01;//-0.08;
-    double d = 0.1;
+    double c = 0.01;//-0.08;
+    double d = 0.08;
 
     int samplesX = 1 * 1e2;
     int samplesY = 1 * 1e2;
@@ -486,11 +507,11 @@ int main(){
 
     for(int i = 0; i < samplesX; ++i){
 
-        xPost[ paraIndex[0] ] = a + (double) dx * ( i + 1) ;
+        xPost[ plotParaIndex[0] ] = a + (double) dx * ( i + 1) ;
 
         for(int j = 0; j < samplesY; ++j){
 
-           xPost[ paraIndex[1] ] = c + (double) dy * ( j + 1) ;
+           xPost[ plotParaIndex[1] ] = c + (double) dy * ( j + 1) ;
 
 
             LikVals =  PostFunc.Eval( xPost ) ;
@@ -545,12 +566,12 @@ int main(){
     //std::cout << "LaplaceMap = \n" << LaplaceMAP << " LaplaceHess_inv.sqrt() = \n" << LaplaceHess_inv.sqrt() << std::endl;
     for(int i = 0; i < samplesX; ++i){
 
-        xGauss[ paraIndex[0] ] = a + (double) dx * ( i + 1) ;
+        xGauss[ plotParaIndex[0] ] = a + (double) dx * ( i + 1) ;
 
         for(int j = 0; j < samplesY; ++j){
 
 
-            xGauss[ paraIndex[1] ] = c + (double) dy * ( j + 1) ;
+            xGauss[ plotParaIndex[1] ] = c + (double) dy * ( j + 1) ;
 
             probDensVal = 1. / ( std::sqrt( pow(2*M_PI, 2) * negLogHess.inverse().determinant() )   ) *
                                       std::exp( - 1./2. * (xGauss - LaplaceMAP).transpose() * negLogHess * (xGauss - LaplaceMAP) );

@@ -25,7 +25,7 @@ public:
 
     PdfEval ( ) { };
 
-    PdfEval ( double noiseLik, Eigen::MatrixXd trueSampleDisp, Eigen::VectorXi ObsIndex,
+    PdfEval ( double noiseLik, Eigen::MatrixXd trueSampleDisp,  std::vector<int> paraIndex ,Eigen::VectorXi ObsIndex,
               Vec priorMean, const Eigen::MatrixXd& PriorCovMatrix ) ;
 
     double Eval( Vec x);
@@ -38,17 +38,19 @@ private:
     double noiseLikStd_;
     Eigen::VectorXi ObsIndex_ ;
     Eigen::MatrixXd PriorCovMatrix_;
+    std::vector<int> paraIndex_;
     Vec priorMean_;
 
 };
 
 template < unsigned DimObs, unsigned DimPara, typename Vec >
-PdfEval < DimObs, DimPara, Vec>::PdfEval( double noiseLikStd, Eigen::MatrixXd trueSampleDisp,
+PdfEval < DimObs, DimPara, Vec>::PdfEval( double noiseLikStd, Eigen::MatrixXd trueSampleDisp, std::vector<int> paraIndex,
                                           Eigen::VectorXi ObsIndex, Vec priorMean,
                                           const Eigen::MatrixXd& PriorCovMatrix ){
 
     noiseLikStd_ = noiseLikStd;
     trueSampleDisp_ = trueSampleDisp;
+    paraIndex_ = paraIndex;
     ObsIndex_ = ObsIndex;
     priorMean_ = priorMean;
     PriorCovMatrix_ = PriorCovMatrix;
@@ -70,7 +72,7 @@ double PdfEval< DimObs, DimPara, Vec>::Eval(Vec x ){
 
     for(int i =0; i < DimPara; ++i){
 
-        MTrussFem.modA( i, x[i] );
+        MTrussFem.modA( paraIndex_[i], x[i] );
     }
 
     MTrussFem.assembleS( );
@@ -110,6 +112,9 @@ double PdfEval< DimObs, DimPara, Vec>::Eval(Vec x ){
         for(int j =0; j < DimObs; ++j){
             y_iVec[j] = trueSampleDisp_( i, j );
         }
+
+        //std::cout << "\n y_iVec\n" << y_iVec << std::endl;
+        //std::cout << "\ K_thetaInvf\n" << K_thetaInvf << std::endl;
 
         logLik += - 1./2. * (y_iVec - K_thetaInvf).transpose() * CovMatrixNoise.inverse() * (y_iVec - K_thetaInvf)   ;
 

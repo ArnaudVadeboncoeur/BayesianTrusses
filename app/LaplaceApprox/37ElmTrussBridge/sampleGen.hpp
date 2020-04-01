@@ -35,37 +35,29 @@ void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSampl
     std::ofstream myTrueFile;
     myTrueFile.open("trueResults.dat", std::ios::trunc);
 
-    std::normal_distribution<double> normal( 0, 0.0005 );
+    std::normal_distribution<double> normal( 0, 0.0003 );
 
     std::random_device rd;
     std::mt19937 engine( rd() );
 
-    int numSamples = 30;
+    int numSamples = 10;
 
     //Index of dofs observed
     //std::cout << "Here" << std::endl;
 
-//    Eigen::VectorXi nodesObs( 6 ); nodesObs << 1, 2, 3, 6, 7, 8 ;
-//        Eigen::VectorXi ObsIndex( nodesObs.size() * 3 );
-//        for(int j = 0; j < nodesObs.size(); ++j){
-//
-//            ObsIndex[ j*3 + 0] = nodesObs[j]*3 + 0;
-//            ObsIndex[ j*3 + 1] = nodesObs[j]*3 + 1;
-//            ObsIndex[ j*3 + 2] = nodesObs[j]*3 + 2;
-//        }
+    //Eigen::VectorXi nodesObs( 14 ); nodesObs <<  1,2,3,4,5,6,7,8,9,10,11,12,13;
+    Eigen::VectorXi nodesObs( 4 ); nodesObs <<  2, 4, 9, 11;
+    //Eigen::VectorXi nodesObs( 1 ); nodesObs <<  1;
+        Eigen::VectorXi ObsIndex( nodesObs.size() * 3 );
+        for(int j = 0; j < nodesObs.size(); ++j){
 
-//    Eigen::VectorXi nodesObs( 10 ); nodesObs << 1, 2, 3, 4, 5, 8, 9, 10, 11, 12 ;
-//            Eigen::VectorXi ObsIndex( nodesObs.size() * 3 );
-//            for(int j = 0; j < nodesObs.size(); ++j){
-//
-//                ObsIndex[ j*3 + 0] = nodesObs[j]*3 + 0;
-//                ObsIndex[ j*3 + 1] = nodesObs[j]*3 + 1;
-//                ObsIndex[ j*3 + 2] = nodesObs[j]*3 + 2;
-//            }
-    Eigen::VectorXi ObsIndex( 6 );  ObsIndex << 6, 7, 8, 27, 28, 29;
+            ObsIndex[ j*3 + 0] = nodesObs[j]*3 + 0;
+            ObsIndex[ j*3 + 1] = nodesObs[j]*3 + 1;
+            ObsIndex[ j*3 + 2] = nodesObs[j]*3 + 2;
+        }
 
-    //Eigen::VectorXi ObsIndex( 6 ); ObsIndex << 6, 7, 8, 21, 22, 23;
-
+    //Eigen::VectorXi ObsIndex( 6 ); ObsIndex << 6, 7, 8, 27, 28, 29;
+    //Eigen::VectorXi ObsIndex( 3 ); ObsIndex << 9, 10, 11;
 
 
     //std::cout << ObsIndex<<"\n\n" << std::endl;
@@ -88,12 +80,12 @@ void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSampl
 
 
         double A1 = 0.04 ;
-        double A2 = 0.04 ;//0.04 ;
+        //double A2 = 0.02 ;//0.04 ;
         //double A3 = 0.02 ;
         //A2 = A1 ;
 
-        trueTrussFem.modA(0, A1);
-        trueTrussFem.modA(1, A2);
+        trueTrussFem.modA(13, A1);
+        //trueTrussFem.modA(1, A1);
 
 
         trueTrussFem.assembleS( );
@@ -109,18 +101,14 @@ void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSampl
 //            std::cout << dofK[j] << std::endl;
 //        }
 
-        myTrueFile << A1 << " " << A2 << " ";
+        //myTrueFile << A1 << " " << A2 << " ";
 
         //want to only see data that is in ObsIndex
         for(int j = 0; j < ObsIndex.size(); ++j ){
             for( int l = 0; l < dofK.size() ; ++l){
                 if( ObsIndex[j] == dofK[l] ){
 
-                    allSamples(i, j) = dispTruss[ l ] + normal( engine ) ;
-                    //allSamples(i, j) = dispTruss[ l ];// + normal( engine ) ;
-
-                    //std::cout<< "ObsIndex[j] " << ObsIndex[j] << std::endl;
-                    //std::cout<< "dispTruss[ l ] " << dispTruss[ l ] << std::endl;
+                    allSamples(i, j) = dispTruss[ l ];// + normal( engine ) ;
                 }
             }
 
