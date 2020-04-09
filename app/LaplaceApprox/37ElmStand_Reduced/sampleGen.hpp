@@ -35,28 +35,46 @@ void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSampl
     std::ofstream myTrueFile;
     myTrueFile.open("trueResults.dat", std::ios::trunc);
 
-    std::normal_distribution<double> normal( 0, 0.0003 );
+    //std::normal_distribution<double> normal( 0, 0.0003 );
 
     std::random_device rd;
     std::mt19937 engine( rd() );
 
-    int numSamples = 10;
+    int numSamples = 5;
 
     //Index of dofs observed
     //std::cout << "Here" << std::endl;
 
-    //Eigen::VectorXi nodesObs( 14 ); nodesObs <<  1,2,3,4,5,6,7,8,9,10,11,12,13;
-    Eigen::VectorXi nodesObs( 4 ); nodesObs <<    2, 4, 9, 11;
-    //Eigen::VectorXi nodesObs( 1 ); nodesObs <<  1;
-        Eigen::VectorXi ObsIndex( nodesObs.size() * 3 );
-        for(int j = 0; j < nodesObs.size(); ++j){
+//    Eigen::VectorXi nodesObs( 4 ); nodesObs <<    1, 2, 6, 7;
+//    //Eigen::VectorXi nodesObs( 1 ); nodesObs <<  1;
+//        Eigen::VectorXi ObsIndex( nodesObs.size() * 3 );
+//        for(int j = 0; j < nodesObs.size(); ++j){
+//
+//            ObsIndex[ j*3 + 0] = nodesObs[j]*3 + 0;
+//            ObsIndex[ j*3 + 1] = nodesObs[j]*3 + 1;
+//            ObsIndex[ j*3 + 2] = nodesObs[j]*3 + 2;
+//        }
+//
+//    Eigen::VectorXi nodesObs( 10 ); nodesObs <<   1, 2,3,4, 5, 8, 9,10,  11, 12;    Eigen::VectorXi ObsIndex( nodesObs.size() * 2 );
+//            for(int j = 0; j < nodesObs.size(); ++j){
+//
+//                ObsIndex[ j*2 + 0] = nodesObs[j]*3 + 0;
+//                ObsIndex[ j*2 + 1] = nodesObs[j]*3 + 1;
+//            }
+    Eigen::VectorXi ObsIndex( 24 );
+    ObsIndex << 3,  4,
+                6,  7,  8,
+                9,  10,
+                12, 13, 14,
+                15, 16,
 
-            ObsIndex[ j*3 + 0] = nodesObs[j]*3 + 0;
-            ObsIndex[ j*3 + 1] = nodesObs[j]*3 + 1;
-            ObsIndex[ j*3 + 2] = nodesObs[j]*3 + 2;
-        }
+                25, 25,
+                27, 28, 29,
+                30, 31,
+                33, 34, 35,
+                36, 37;//all non fixed x and y disp
 
-    //Eigen::VectorXi ObsIndex( 6 ); ObsIndex << 6, 7, 8, 27, 28, 29;
+    //Eigen::VectorXi ObsIndex( 10 ); ObsIndex << 4, 7, 10, 13, 16, 25, 28, 31, 34, 37;//all non fixed y disp
     //Eigen::VectorXi ObsIndex( 3 ); ObsIndex << 9, 10, 11;
 
 
@@ -73,7 +91,7 @@ void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSampl
 
     FEMClass trueTrussFem(false, TrussDef );
 
-    for(int i = 0; i < numSamples ; i++){
+
 
 //        double A1 = 0.06 + normal( engine ) ;
 //        double A2 = 0.04 + normal( engine ) ;
@@ -94,21 +112,25 @@ void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSampl
 
         dofK = trueTrussFem.getFreeDof() ;
         Eigen::VectorXd dispTruss = trueTrussFem.getDisp( );
-        //std::cout << "dispTruss \n" << dispTruss << "\n\n";
 
+        double propHalfMax = 0.5;
 
-//        for(int j = 0; j< dofK.size(); ++j){
-//            std::cout << dofK[j] << std::endl;
-//        }
+        //compute Fullwidth half max
+        Eigen::VectorXd fwhmStd ( ObsIndex.size() );
 
-        //myTrueFile << A1 << " " << A2 << " ";
-
+        for(int i = 0; i < numSamples ; i++){
         //want to only see data that is in ObsIndex
         for(int j = 0; j < ObsIndex.size(); ++j ){
             for( int l = 0; l < dofK.size() ; ++l){
                 if( ObsIndex[j] == dofK[l] ){
 
-                    allSamples(i, j) = dispTruss[ l ]+ normal( engine ) ;
+                    fwhmStd[j] =  std::abs( ( dispTruss[ l ] * propHalfMax ) / 2.355 );
+                    std::normal_distribution<double> normal( 0, fwhmStd[j] );
+
+                    //std::normal_distribution<double> normal( 0,  0.01* dispTruss.mean() );
+                    //std::cout << "0.1* dispTruss.mean() " << 0.01* dispTruss.mean() << std::endl;
+
+                    allSamples(i, j) = dispTruss[ l ] + normal( engine ) ;
                 }
             }
 
@@ -123,6 +145,7 @@ void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSampl
 
     myTrueFile.close();
 
+    std::cout << "fwhmStd\n" << fwhmStd << std::endl;
 
     trueSamplesTuple = std::make_tuple(allSamples, forcing );
 

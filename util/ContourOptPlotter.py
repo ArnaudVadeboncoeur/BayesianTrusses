@@ -57,7 +57,7 @@ if(OptLine == True):
     xo = data2[:, 0]
     yo = data2[:, 1]
     plt.plot(xo, yo, c='r')
-    plt.scatter(xo[1:], yo[1:], c='r', s=10)
+    plt.scatter(xo[1:], yo[1:], c='r', s=1)
 
 plt.xlabel("Parameter-1")
 plt.ylabel("Parameter-2")

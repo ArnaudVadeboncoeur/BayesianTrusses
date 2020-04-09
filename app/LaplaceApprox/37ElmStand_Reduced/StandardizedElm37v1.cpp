@@ -37,36 +37,102 @@ int main(){
     std::cout << "Here -- DTRUSSDEF37Elm_HPP_ worked" << std::endl;
 
     constexpr unsigned DimK       =  30;
-    //constexpr unsigned DimK       =  3;
-    constexpr unsigned DimObs     =  12 ;//1 node 3->x,y,z
-    constexpr unsigned DimPara    =  2 ;
+    constexpr unsigned DimObs     =  24 ;//1 node 3->x,y,z
+    constexpr unsigned DimPara    =  3 ;
 
     constexpr unsigned NumTotPara =  37;
 
-    std::vector<int> paraIndex     {13, 16};
-    std::vector<int> plotParaIndex {0, 1};
+    std::vector<int> paraIndex     { 13, 15, 16 };
+    bool plot_1_dim = false;
+    std::vector<int> plotParaIndex {0, 2};
 
 
     std::cout << "Here-main" << std::endl;
 
     //Index of dofs observed
-    Eigen::VectorXi nodesObs( 4 ); nodesObs <<   2, 4, 9, 11;
-    //Eigen::VectorXi nodesObs( 1 ); nodesObs <<  1;
-        Eigen::VectorXi ObsIndex( nodesObs.size() * 3 );
-        for(int j = 0; j < nodesObs.size(); ++j){
+//    Eigen::VectorXi nodesObs( 5 ); nodesObs <<   1, 2, 4, 9,  11;
+//        Eigen::VectorXi ObsIndex( nodesObs.size() * 3 );
+//        for(int j = 0; j < nodesObs.size(); ++j){
+//
+//            ObsIndex[ j*3 + 0] = nodesObs[j]*3 + 0;
+//            ObsIndex[ j*3 + 1] = nodesObs[j]*3 + 1;
+//            ObsIndex[ j*3 + 2] = nodesObs[j]*3 + 2;
+//        }
 
-            ObsIndex[ j*3 + 0] = nodesObs[j]*3 + 0;
-            ObsIndex[ j*3 + 1] = nodesObs[j]*3 + 1;
-            ObsIndex[ j*3 + 2] = nodesObs[j]*3 + 2;
-        }
+    //Index of dofs observed -- x and y only
+//    Eigen::VectorXi nodesObs( 10 ); nodesObs <<   1, 2,3,4, 5, 8, 9,10,  11, 12;
+//        Eigen::VectorXi ObsIndex( nodesObs.size() * 2 );
+//        for(int j = 0; j < nodesObs.size(); ++j){
+//
+//            ObsIndex[ j*2 + 0] = nodesObs[j]*3 + 0;
+//            ObsIndex[ j*2 + 1] = nodesObs[j]*3 + 1;
+//        }
+    Eigen::VectorXi ObsIndex( DimObs );
+    ObsIndex << 3,  4,
+                6,  7,  8,
+                9,  10,
+                12, 13, 14,
+                15, 16,
 
-    //Eigen::VectorXi ObsIndex( DimObs ); ObsIndex << 6, 7, 8, 27, 28, 29;
+                25, 25,
+                27, 28, 29,
+                30, 31,
+                33, 34, 35,
+                36, 37;//all non fixed x and y disp
+
+
     //Eigen::VectorXi ObsIndex( 3 ); ObsIndex << 9, 10, 11;
 
     std::cout << "Here-2" << std::endl;
 
     //init prior information
-    double noiseLikStd = 0.0003;
+
+    //find empirical std in data
+
+    Eigen::VectorXd empMean( trueSampleDisp.cols() );
+    empMean.setZero();
+
+    for(int i = 0 ; i < trueSampleDisp.rows(); ++i){
+        for(int j = 0 ; j < trueSampleDisp.cols(); ++j){
+
+            empMean[j]+= trueSampleDisp(i, j);
+        }
+    }
+    for(int i = 0 ; i < empMean.size(); ++i){
+        empMean[i] = empMean[i] / trueSampleDisp.rows();
+    }
+    //std::cout << "empMean\n" << empMean << std::endl;
+
+    Eigen::VectorXd empStd( trueSampleDisp.cols() );
+    empStd.setZero();
+    //most reliable way of computing std it seems..
+    //std::cout << "empStd\n" << empStd << std::endl;
+    double propHalfMax = 0.5;
+    for(int i = 0 ; i < empStd.size(); ++i){
+            empStd[i] = ( std::abs( empMean[i] ) * propHalfMax ) / 2.355;
+        }
+
+//    for(int i = 0 ; i < trueSampleDisp.rows(); ++i){
+//        for(int j = 0 ; j < trueSampleDisp.cols(); ++j){
+//
+//            empStd[j]+= std::pow( ( trueSampleDisp(i, j) - empMean[j] ), 2);
+//        }
+//    }
+//    std::cout << "empStd\n" << empStd << std::endl;
+//    for(int i = 0 ; i < empStd.size(); ++i){
+//        empStd[i] = std::sqrt (  1 / ( 1 - trueSampleDisp.rows()) * empStd[i] );
+//    }
+//
+    std::cout << "empStd\n" << empStd << std::endl;
+
+    Eigen::MatrixXd empStdCovMatrix (DimObs,DimObs); empStdCovMatrix.setZero();
+    for(int i = 0; i < DimObs; ++i){
+       empStdCovMatrix(i, i) = std::pow(empStd[i], 2) ;//* 0.1;
+       //10% std of mean disp values.
+       //empStdCovMatrix(i, i) = std::pow( 0.01 * trueSampleDisp.mean(), 2) ;
+    }
+
+    //double noiseLikStd = 0.0003;
 
     Eigen::VectorXd priorMeans(DimPara); priorMeans.setConstant(0.06);
     double priorStd = 0.1;
@@ -78,14 +144,15 @@ int main(){
             PriorCovMatrix(i, i) = pow(priorStdVec[i], 2) ;//* 0.1;
         }
 
-    PdfEval< DimObs, DimPara , Eigen::VectorXd> PostFunc ( noiseLikStd, trueSampleDisp, paraIndex , ObsIndex, priorMeans, PriorCovMatrix );
 
     Eigen::MatrixXd CovMatrixNoise (DimObs,DimObs);
     CovMatrixNoise.setIdentity();
-    CovMatrixNoise = CovMatrixNoise * std::pow(noiseLikStd, 2);
+    CovMatrixNoise = empStdCovMatrix;
     Eigen::MatrixXd CovMatrixNoiseInv = CovMatrixNoise.inverse();
 
-    std::cout << CovMatrixNoise << std::endl;
+    std::cout << "CovMatrixNoise\n" << CovMatrixNoise << std::endl;
+
+    PdfEval< DimObs, DimPara , Eigen::VectorXd> PostFunc ( empStdCovMatrix, trueSampleDisp, paraIndex , ObsIndex, priorMeans, PriorCovMatrix );
 
     Eigen::MatrixXd PriorCovMatrixInv = PriorCovMatrix.inverse();
 
@@ -233,20 +300,6 @@ int main(){
 	  return   du2_dthetab_Theta;
 	};
 
-////Labmda function to compute du2_dthetab_Theta
-//    std::function < Eigen::MatrixXd    ( const Eigen::VectorXd,
-//                                                  const Eigen::MatrixXd, const Eigen::VectorXd, int) > du2_dthetab_ThetaFunc;
-//
-//    du2_dthetab_ThetaFunc = [ &du2_dthetai_dthetajFunc ]( const Eigen::VectorXd& X, const Eigen::MatrixXd& K_inv,
-//                                                                         const Eigen::VectorXd& u, int index_b ){
-//        Eigen::MatrixXd
-//
-//
-//    }
-
-//Lambda function to compute d^2/dTheta^2 log P(Theta | y, Sig)
-
-
 //Newton Ralphson to find MAP--------------------------------------------
 
 
@@ -323,7 +376,7 @@ int main(){
 
 
     //N-R iterations
-    int maxIter = 1e4;
+    int maxIter = 5e3;
     for(int i = 0; i < maxIter; ++i){
 
 //        X[0] = 0.0528428;
@@ -376,7 +429,7 @@ int main(){
        //X = X - 0.01*hess.inverse() * grad.transpose();
 
 
-       X = X + 0.0000005 * grad.transpose();
+       X = X + 0.00000005 * grad.transpose();
 
        for(int j = 0; j < X.size(); ++j){
            if(X[j] < 0.){
@@ -439,32 +492,8 @@ int main(){
     std::cout << "grad \n" << grad << "\n\n";
     std::cout << "hess \n" << hess << "\n\n";
     std::cout << "LaplaceHess_inv \n" << LaplaceHess_inv << "\n\n";
-    //std::cout << "LaplaceHess_inv \n" << LaplaceHess_inv.sqrt() << "\n\n";
-    //return 0;
-    Eigen::VectorXd LaplaceMAP = X;
-//Compute Matrix of 2nd der p(theta|y_i, Sig)----------------------------------------------
 
-    //produce k(theta)
-//    for(int j = 0; j < X.size(); ++j){
-//        TrussFem.modA(j, X[j]);
-//    }
-//    TrussFem.assembleS();
-//    k = TrussFem.getK();
-//    TrussFem.FEMClassReset(false);
-//
-//    //produce dk(theta)/dtheta
-//   for(int j = 0; j < X.size(); ++j){
-//       TrussFem.modA(j, 1);
-//   }
-//   TrussFem.assembleS();
-//   dk_dtheta = TrussFem.getK();
-//   TrussFem.FEMClassReset(false);
-//
-//   Eigen::MatrixXd covLaplaceAppInv = -1. * HessPost(X,k, dk_dtheta );
-//
-//   std::cout << "LaplaceMAP  = \n" << LaplaceMAP << "\n\n";
-//   std::cout << "covLaplaceApp  = \n" << covLaplaceAppInv.inverse().sqrt() << "\n\n";
-//
+    Eigen::VectorXd LaplaceMAP = X;
 
 
 //Eval True Pdf to plot ---------------------------------------------------------
@@ -483,119 +512,117 @@ int main(){
     std::ofstream myFile;
     myFile.open("pdfResults.dat");
 
-    double a = 0.01;//-0.08;
-    double b = 0.08;
+    double a = 0.001;//-0.08;
+    double b = 0.1;
 
-    double c = 0.01;//-0.08;
-    double d = 0.08;
+    double c = 0.001;
+    double d = 0.1;
 
     int samplesX = 1 * 1e2;
+    if (plot_1_dim) {samplesX = 1;}
     int samplesY = 1 * 1e2;
-    //int samplesY = 1;
 
 
     double dx = (double) (b - a) / samplesX;
+    if (plot_1_dim) {dx = 1;}
     double dy = (double) (d - c) / samplesY;
-    //double dy = 1.;
 
-    double bottomLim = -9e40;
+    double bottomLim = -1.;
 
-    //Eigen::MatrixXd evaluations ( samplesX * samplesY , 2);
-    Eigen::MatrixXd evaluations ( samplesX * samplesY , dimEval + 1);
+   //Eigen::MatrixXd evaluations ( samplesX * samplesY , 2);
+   Eigen::MatrixXd evaluations ( samplesX * samplesY , dimEval + 1);
 
-    unsigned ctr = 0;
+   unsigned ctr = 0;
 
-    for(int i = 0; i < samplesX; ++i){
+   for(int i = 0; i < samplesX; ++i){
 
-        //std::cout << "Here-Fault\n";
-        xPost[ plotParaIndex[0] ] = a + (double) dx * ( i + 1) ;
+       xPost[ plotParaIndex[0] ] = a + (double) dx * ( i + 1) ;
 
-        for(int j = 0; j < samplesY; ++j){
+       for(int j = 0; j < samplesY; ++j){
 
-           xPost[ plotParaIndex[1] ] = c + (double) dy * ( j + 1) ;
+          xPost[ plotParaIndex[1] ] = c + (double) dy * ( j + 1) ;
 
 
-            LikVals =  PostFunc.Eval( xPost ) ;
-            //std::cout << LikVals << std::endl;
+           LikVals =  PostFunc.Eval( xPost ) ;
+           //std::cout << LikVals << std::endl;
 
 
-            if(LikVals > maxVal){
-                maxVal = LikVals;
-                maxXPost   = xPost;
-            }
+           if(LikVals > maxVal){
+               maxVal = LikVals;
+               maxXPost   = xPost;
+           }
 
-            evaluations(ctr, 0) = xPost[ plotParaIndex[0] ];
-            evaluations(ctr, 1) = xPost[ plotParaIndex[1] ];
-            evaluations(ctr, 2) = LikVals;
+           evaluations(ctr, 0) = xPost[ plotParaIndex[0] ];
+           evaluations(ctr, 1) = xPost[ plotParaIndex[1] ];
+           evaluations(ctr, 2) = LikVals;
 
-            ctr++;
-        }
-    }
+           ctr++;
+       }
+   }
 
-    for(int i = 0; i < evaluations.rows(); ++i){
-        evaluations(i, dimEval ) = std::exp(evaluations(i, dimEval ) - maxVal) ;
-        //Vol += evaluations(i, 1) * dx;
-        Vol += evaluations(i, dimEval) * dx * dy;
-    }
+   for(int i = 0; i < evaluations.rows(); ++i){
+       evaluations(i, dimEval ) = std::exp(evaluations(i, dimEval ) - maxVal) ;
+       //Vol += evaluations(i, 1) * dx;
+       Vol += evaluations(i, dimEval) * dx * dy;
+   }
 
-    for(int i = 0; i < evaluations.rows(); ++i){
-        evaluations(i, dimEval) = evaluations(i, dimEval) / Vol;
-        //std::cout << evaluations(i, dimEval) << std::endl;
-        if( evaluations(i, dimEval) > bottomLim ){
-            myFile << evaluations(i, 0) << " " << evaluations(i, 1) << " " << evaluations(i, 2) << std::endl;
-        }
-        //myFile << evaluations(i, 0) << " " << evaluations(i, 1) << std::endl;
-    }
+   for(int i = 0; i < evaluations.rows(); ++i){
+       evaluations(i, dimEval) = evaluations(i, dimEval) / Vol;
+       //std::cout << evaluations(i, dimEval) << std::endl;
+       if( evaluations(i, dimEval) > bottomLim ){
+           myFile << evaluations(i, 0) << " " << evaluations(i, 1) << " " << evaluations(i, 2) << std::endl;
+       }
+       //myFile << evaluations(i, 0) << " " << evaluations(i, 1) << std::endl;
+   }
 
-    //std::cout << "Here-Fault\n";
 
-    std::cout << "maxVal = " << maxVal <<"\n"<< " maxX = \n" << maxXPost << " " << std::endl;
-    //return 0;
+   std::cout << "maxVal = " << maxVal <<"\n"<< " maxX = \n" << maxXPost << " " << std::endl;
+   //return 0;
 
-    std::cout << "Generated true pdf points" << std::endl;
+   std::cout << "Generated true pdf points" << std::endl;
 //Eval Laplace Approx --------------------------------------
 
-    Eigen::VectorXd xGauss (DimPara); xGauss = LaplaceMAP;
-    Eigen::MatrixXd EvalsLaplApp ( samplesX * samplesY , dimEval + 1);
-    std::ofstream myFile3;
-    myFile3.open("pdfLaplaceEval.dat");
-    double probDensVal;
-    std::cout << "-------------------" << '\n';
+   Eigen::VectorXd xGauss (DimPara); xGauss = LaplaceMAP;
+   Eigen::MatrixXd EvalsLaplApp ( samplesX * samplesY , dimEval + 1);
+   std::ofstream myFile3;
+   myFile3.open("pdfLaplaceEval.dat");
+   double probDensVal;
+   std::cout << "-------------------" << '\n';
 
-    int ctr2 = 0;
-
-
-    //std::cout << "LaplaceMap = \n" << LaplaceMAP << " LaplaceHess_inv.sqrt() = \n" << LaplaceHess_inv.sqrt() << std::endl;
-    for(int i = 0; i < samplesX; ++i){
-
-        xGauss[ plotParaIndex[0] ] = a + (double) dx * ( i + 1) ;
-
-        for(int j = 0; j < samplesY; ++j){
+   int ctr2 = 0;
 
 
-            xGauss[ plotParaIndex[1] ] = c + (double) dy * ( j + 1) ;
+   //std::cout << "LaplaceMap = \n" << LaplaceMAP << " LaplaceHess_inv.sqrt() = \n" << LaplaceHess_inv.sqrt() << std::endl;
+   for(int i = 0; i < samplesX; ++i){
 
-            probDensVal = 1. / ( std::sqrt( pow(2*M_PI, 2) * negLogHess.inverse().determinant() )   ) *
-                                      std::exp( - 1./2. * (xGauss - LaplaceMAP).transpose() * negLogHess * (xGauss - LaplaceMAP) );
+       xGauss[ plotParaIndex[0] ] = a + (double) dx * ( i + 1) ;
 
-            EvalsLaplApp(ctr2, 0) = xGauss[ plotParaIndex[0] ];
-            EvalsLaplApp(ctr2, 1) = xGauss[ plotParaIndex[1] ];
-            EvalsLaplApp(ctr2, 2) = probDensVal;
-            //std::cout << xGauss[ 0 ] << " " << xGauss[1] << " " << probDensVal << std::endl;
+       for(int j = 0; j < samplesY; ++j){
 
-            if( probDensVal > bottomLim ){
-                myFile3 << xGauss[ plotParaIndex[0] ] << " " << xGauss[ plotParaIndex[1] ] << " " << probDensVal << std::endl;
-            }
-            //myFile3 << xGauss[0] << " " << probDensVal << std::endl;
-            ctr2 ++;
-        }
-    }
-    myFile3.close();
 
-    std::cout << "KLDiv lapalce to True = "<< KLDiv(EvalsLaplApp, evaluations) << std::endl;
-    std::cout << "L2Norm lapalce to True = "<<L2Norm(EvalsLaplApp, evaluations) << std::endl;
+           xGauss[ plotParaIndex[1] ] = c + (double) dy * ( j + 1) ;
 
-    return 0;
+           probDensVal = 1. / ( std::sqrt( pow(2 * M_PI, 2) * negLogHess.inverse().determinant() )   ) *
+                                     std::exp( - 1./2. * (xGauss - LaplaceMAP).transpose() * negLogHess * (xGauss - LaplaceMAP) );
+
+           EvalsLaplApp(ctr2, 0) = xGauss[ plotParaIndex[0] ];
+           EvalsLaplApp(ctr2, 1) = xGauss[ plotParaIndex[1] ];
+           EvalsLaplApp(ctr2, 2) = probDensVal;
+           //std::cout << xGauss[ 0 ] << " " << xGauss[1] << " " << probDensVal << std::endl;
+
+           if( probDensVal > bottomLim ){
+               myFile3 << xGauss[ plotParaIndex[0] ] << " " << xGauss[ plotParaIndex[1] ] << " " << probDensVal << std::endl;
+           }
+           //myFile3 << xGauss[0] << " " << probDensVal << std::endl;
+           ctr2 ++;
+       }
+   }
+   myFile3.close();
+
+   std::cout << "KLDiv lapalce to True = "<< KLDiv(EvalsLaplApp, evaluations) << std::endl;
+   std::cout << "L2Norm lapalce to True = "<<L2Norm(EvalsLaplApp, evaluations) << std::endl;
+
+   return 0;
 
 }
 

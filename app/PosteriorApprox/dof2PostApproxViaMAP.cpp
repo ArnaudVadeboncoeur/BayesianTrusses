@@ -12,8 +12,6 @@
 #include "../../src/statTools/SampleAnalysis.hpp"
 #include "../../src/statTools/histSort.hpp"
 #include "../../src/statTools/KLDiv.hpp"
-#include "../../src/statTools/SteinDiscrepancy.hpp"
-
 #include "../../src/statTools/MCMC2.hpp"
 
 //#include "../../src/statTools/MCMC3-SimAnnealing.hpp"
@@ -30,6 +28,7 @@
 #include <cmath>
 #include <math.h>
 
+#include "../../src/statTools/SteinDiscrepancy.hpp"
 #include "ThreeDTruss.hpp"
 
 std::tuple<Eigen::MatrixXd, std::vector<double> > trueSampleGen(){

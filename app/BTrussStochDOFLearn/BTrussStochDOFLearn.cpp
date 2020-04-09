@@ -10,8 +10,6 @@
 #include "../../src/statTools/SampleAnalysis.hpp"
 #include "../../src/statTools/histSort.hpp"
 #include "../../src/statTools/KLDiv.hpp"
-#include "../../src/statTools/SteinDiscrepancy.hpp"
-
 #include "ThreeDTruss3Bar.hpp"
 
 
@@ -22,6 +20,8 @@
 #include <tuple>
 #include <random>
 #include <cmath>
+
+#include "../../src/statTools/SteinDiscrepancy.hpp"
 
 
 
