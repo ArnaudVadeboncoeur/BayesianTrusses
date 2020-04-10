@@ -42,7 +42,7 @@ DataCont trueSampleGen( ){
     std::random_device rd;
     std::mt19937 engine( rd() );
 
-    std::vector <int> numSamples {5, 6, 7};
+    std::vector <int> numSamples {5, 5, 6};
 
 
 //---------------------- Determining Indeces of Observed Data ------------------------------------
@@ -93,15 +93,18 @@ DataCont trueSampleGen( ){
 
     Eigen::MatrixXd forcing1 ( 14 * 3 , 1 ) ;
     forcing1.setZero();
-    forcing1( 2 * 3 + 1 ) = -1e4;
+    forcing1( 2 * 3 + 1  , 0 )  = -1e4;
+    forcing1( 4 * 3 + 1  , 0 )  = -2e4;
+    forcing1( 11 * 3 + 0 , 0 )  = -1e4;
 
     Eigen::MatrixXd forcing2 ( 14 * 3 , 1 ) ;
-    forcing1.setZero();
-    forcing1( 4 * 3 + 1 ) = -2e4;
+    forcing2.setZero();
+    forcing2( 4 * 3 + 2 ) = -2e4;
+    forcing2( 4 * 3 + 1 ) = -2e4;
 
     Eigen::MatrixXd forcing3 ( 14 * 3 , 1 ) ;
-    forcing1.setZero();
-    forcing1( 9 * 3 + 1 ) =  1e4;
+    forcing3.setZero();
+    forcing3( 9 * 3 + 1 ) =  1e4;
 
     forceContainer[0] = forcing1;
     forceContainer[1] = forcing2;
@@ -123,56 +126,67 @@ DataCont trueSampleGen( ){
 
     for(int f = 0 ; f < numLoadingCases; ++f   ){
 
-    Eigen::MatrixXd allSamples (numSamples[f], ObsIndex.size() );
+        Eigen::MatrixXd allSamples (numSamples[f], ObsIndex.size() );
+        std::cout << "Here-Now1" << std::endl;
 
-    trueTrussFem.modForce( forceContainer[f] );
+        trueTrussFem.modForce( forceContainer[f] );
+        std::cout << "Here-Now2" << std::endl;
 
-    double A1 = 0.04 ;
-    trueTrussFem.modA(13, A1);
+        double A1 = 0.04 ;
+        trueTrussFem.modA(13, A1);
+        std::cout << "Here-Now3" << std::endl;
 
-    trueTrussFem.assembleS( );
-    trueTrussFem.computeDisp( );
-    //trueTrussFem.computeForce( );
+        trueTrussFem.assembleS( );
+        std::cout << "Here-Now4-1" << std::endl;
+        //std::cout << "trueTrussFem.getK() \n" << trueTrussFem.getK() <<std::endl;
 
-    dofK = trueTrussFem.getFreeDof() ;
-    Eigen::VectorXd dispTruss = trueTrussFem.getDisp( );
 
-    double propHalfMax = 0.5;
+        trueTrussFem.computeDisp( );
+        //trueTrussFem.computeForce( );
+        std::cout << "Here-Now4" << std::endl;
 
-    //compute Fullwidth half max
-    Eigen::VectorXd fwhmStd ( ObsIndex.size() );
+        dofK = trueTrussFem.getFreeDof() ;
+        Eigen::VectorXd dispTruss = trueTrussFem.getDisp( );
+        std::cout << "Here-Now5" << std::endl;
 
-    for(int i = 0; i < numSamples[f] ; i++){
-    //want to only see data that is in ObsIndex
-    for(int j = 0; j < ObsIndex.size(); ++j ){
-        for( int l = 0; l < dofK.size() ; ++l){
-            if( ObsIndex[j] == dofK[l] ){
+        double propHalfMax = 0.5;
 
-                fwhmStd[j] =  std::abs( ( dispTruss[ l ] * propHalfMax ) / 2.355 );
-                std::normal_distribution<double> normal( 0, fwhmStd[j] );
+        //compute Fullwidth half max
+        Eigen::VectorXd fwhmStd ( ObsIndex.size() );
 
-                //std::normal_distribution<double> normal( 0,  0.01* dispTruss.mean() );
-                //std::cout << "0.1* dispTruss.mean() " << 0.01* dispTruss.mean() << std::endl;
+        for(int i = 0; i < numSamples[f] ; i++){
+            //want to only see data that is in ObsIndex
+            for(int j = 0; j < ObsIndex.size(); ++j ){
+                for( int l = 0; l < dofK.size() ; ++l){
+                    if( ObsIndex[j] == dofK[l] ){
 
-                allSamples(i, j) = dispTruss[ l ] + normal( engine ) ;
+                        fwhmStd[j] =  std::abs( ( dispTruss[ l ] * propHalfMax ) / 2.355 );
+                        std::normal_distribution<double> normal( 0, fwhmStd[j] );
+
+                        //std::normal_distribution<double> normal( 0,  0.01* dispTruss.mean() );
+                        //std::cout << "0.1* dispTruss.mean() " << 0.01* dispTruss.mean() << std::endl;
+
+                        allSamples(i, j) = dispTruss[ l ] + normal( engine ) ;
+                    }
+                }
+
+                myTrueFile << allSamples(i, j) << " ";
             }
+
+            myTrueFile << std::endl;
+
         }
+        allSamplesContainer[f] = allSamples;
 
-        myTrueFile << allSamples(i, j) << " ";
-    }
-
-    myTrueFile << std::endl;
-
-    }
-    allSamplesContainer[f] = allSamples;
-
-    myTrueFile << "\n\n";
-    trueTrussFem.FEMClassReset(false);
+        myTrueFile << "\n\n";
+        trueTrussFem.FEMClassReset(false);
     }
 
     myTrueFile.close();
 
     trueSamplesTupleContainer = std::make_tuple( allSamplesContainer, forceContainer );
+
+    //std::cout << "trueTrussFem.getK() \n" << trueTrussFem.getK() <<std::endl;
 
     return trueSamplesTupleContainer;
 

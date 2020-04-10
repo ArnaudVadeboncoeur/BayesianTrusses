@@ -29,20 +29,22 @@
 
 int main(){
 
-    DataCont trueSamplesTupleContainer;
+    DataCont trueSamplesTupleContainer = trueSampleGen();
 
     std::vector <Eigen::MatrixXd> trueSampleDispC = std::get<0>( trueSamplesTupleContainer );
     std::vector <Eigen::MatrixXd> trueForcingC    = std::get<1>( trueSamplesTupleContainer );
 
+    constexpr unsigned numForcing = 3;
+
     constexpr unsigned DimK       =  30;
     constexpr unsigned DimObs     =  24 ;//1 node 3->x,y,z
-    constexpr unsigned DimPara    =  3 ;
+    constexpr unsigned DimPara    =  2 ;
 
     constexpr unsigned NumTotPara =  37;
 
-    std::vector<int> paraIndex     { 13, 15, 16 };
+    std::vector<int> paraIndex     { 13, 16 };
     bool plot_1_dim = false;
-    std::vector<int> plotParaIndex {0, 2};
+    std::vector<int> plotParaIndex {0, 1};
 
 
     std::cout << "Here-main" << std::endl;
@@ -83,24 +85,28 @@ int main(){
 
     std::cout << "Here-2" << std::endl;
 
-    //init prior information
+//-------------------init prior information ----------------------------
 
     //find empirical std in data -- to do for every loading case
 
-    Eigen::VectorXd empMean( trueSampleDisp.cols() );
+    std::vector <Eigen::MatrixXd> CovMatrixNoiseInvC(numForcing);
+
+    for(int f = 0 ; f < numForcing; ++f){
+
+    Eigen::VectorXd empMean( trueSampleDispC[f].cols() );
     empMean.setZero();
 
-    for(int i = 0 ; i < trueSampleDisp.rows(); ++i){
-        for(int j = 0 ; j < trueSampleDisp.cols(); ++j){
+    for(int i = 0 ; i < trueSampleDispC[f].rows(); ++i){
+        for(int j = 0 ; j < trueSampleDispC[f].cols(); ++j){
 
-            empMean[j]+= trueSampleDisp(i, j);
+            empMean[j]+= trueSampleDispC[f](i, j);
         }
     }
     for(int i = 0 ; i < empMean.size(); ++i){
-        empMean[i] = empMean[i] / trueSampleDisp.rows();
+        empMean[i] = empMean[i] / trueSampleDispC[f].rows();
     }
 
-    Eigen::VectorXd empStd( trueSampleDisp.cols() );
+    Eigen::VectorXd empStd( trueSampleDispC[f].cols() );
     empStd.setZero();
     //most reliable way of computing std it seems..
     double propHalfMax = 0.5;
@@ -108,54 +114,66 @@ int main(){
             empStd[i] = ( std::abs( empMean[i] ) * propHalfMax ) / 2.355;
         }
 
-    std::cout << "empStd\n" << empStd << std::endl;
-
     Eigen::MatrixXd empStdCovMatrix (DimObs,DimObs); empStdCovMatrix.setZero();
     for(int i = 0; i < DimObs; ++i){
        empStdCovMatrix(i, i) = std::pow(empStd[i], 2) ;//* 0.1;
        //10% std of mean disp values.
-       //empStdCovMatrix(i, i) = std::pow( 0.01 * trueSampleDisp.mean(), 2) ;
+       //empStdCovMatrix(i, i) = std::pow( 0.01 * trueSampleDispC[f].mean(), 2) ;
     }
 
-    Eigen::VectorXd priorMeans(DimPara); priorMeans.setConstant(0.06);
-    double priorStd = 0.1;
+        CovMatrixNoiseInvC[f] = empStdCovMatrix.inverse();
 
-    Eigen::MatrixXd PriorCovMatrix (DimPara,DimPara); PriorCovMatrix.setZero();
-        Eigen::VectorXd priorStdVec(DimPara); priorStdVec.setConstant(0.1);
-        for(int i = 0; i < priorStdVec.size(); ++i){
-            PriorCovMatrix(i, i) = pow(priorStdVec[i], 2) ;//* 0.1;
-        }
-
-    Eigen::MatrixXd CovMatrixNoise (DimObs,DimObs);
-    CovMatrixNoise.setIdentity();
-    CovMatrixNoise = empStdCovMatrix;
-    Eigen::MatrixXd CovMatrixNoiseInv = CovMatrixNoise.inverse();
+    }
 
 
     //PdfEval< DimObs, DimPara , Eigen::VectorXd> PostFunc ( empStdCovMatrix, trueSampleDisp, paraIndex , ObsIndex, priorMeans, PriorCovMatrix );
 
+    Eigen::VectorXd priorMeans(DimPara); priorMeans.setConstant(0.06);
+
+    Eigen::MatrixXd PriorCovMatrix (DimPara,DimPara); PriorCovMatrix.setZero();
+    Eigen::VectorXd priorStdVec(DimPara); priorStdVec.setConstant(0.1);
+    for(int i = 0; i < priorStdVec.size(); ++i){
+        PriorCovMatrix(i, i) = pow(priorStdVec[i], 2) ;//* 0.1;
+    }
+
     Eigen::MatrixXd PriorCovMatrixInv = PriorCovMatrix.inverse();
 
+
+//------------------------------------------------------------------------------
     //init FEM model
     TupleTrussDef TrussDef;
     TrussDef =  InitialTrussAssignment();
     FEMClass TrussFem(false, TrussDef );
     TrussFem.assembleS();
     std::vector<int> dofK = TrussFem.getFreeDof();
-    Eigen::MatrixXd f = TrussFem.getForce();
     TrussFem.FEMClassReset(false);
 
 //--------------------------------------------------------------------------------------
 
    //Lambda function to compute u(Theta)
-    std::function < Eigen::VectorXd ( const Eigen::VectorXd) > uTheta;
-    uTheta = [ &TrussFem, paraIndex ](const Eigen::VectorXd& X ){
+    std::function < Eigen::VectorXd ( const Eigen::VectorXd, int) > uTheta;
+    uTheta = [ &TrussFem, paraIndex, trueForcingC ](const Eigen::VectorXd& X, int forcingIndex ){
+        TrussFem.FEMClassReset(false);
+
         for(int j = 0; j < paraIndex.size(); ++j){
             TrussFem.modA(paraIndex[j], X[j] );
+//            std::cout << "paraIndex[j] \n" << paraIndex[j] <<std::endl;
+//            std::cout << "X[j] \n" << X[j]  <<std::endl;
+
         }
+
+        //std::cout << "Pre1 - TrussFem.getForce() \n" << TrussFem.getForce() <<std::endl;
+        TrussFem.modForce( trueForcingC[forcingIndex] );
+        //std::cout << "Post1 - TrussFem.getForce() \n" << TrussFem.getForce() <<std::endl;
+        //std::cout << "TrussFem.getK()1 \n" << TrussFem.getK() <<std::endl;
+
         TrussFem.assembleS();
+        //std::cout << "Post2 - TrussFem.getForce() \n" << TrussFem.getForce() <<std::endl;
+        //std::cout << "TrussFem.getK()2 \n" << TrussFem.getK() <<std::endl;
+
         TrussFem.computeDisp();
         Eigen::VectorXd u = TrussFem.getDisp();
+        //std::cout << "Start TrussFem.getDisp() \n" << TrussFem.getDisp() << "END TrussFem.getDisp() \n"<<std::endl;
         TrussFem.FEMClassReset(false);
 
         return u;
@@ -286,7 +304,7 @@ int main(){
     Eigen::MatrixXd k(DimK, DimK);
     Eigen::MatrixXd k_inv(DimK, DimK);
     Eigen::MatrixXd dk_dtheta(DimPara, DimPara);
-    Eigen::MatrixXd y_i(trueSampleDisp.cols(), 1);
+    Eigen::MatrixXd y_i(DimObs, 1);
     Eigen::MatrixXd u  ( DimObs,  1 );
     Eigen::MatrixXd u_n( DimK  ,  1 );
     Eigen::MatrixXd du_dTheta( DimObs, DimPara );
@@ -354,40 +372,40 @@ int main(){
 
 
     //N-R iterations
-    int maxIter = 5e3;
-    for(int i = 0; i < maxIter; ++i){
+    int maxIter = 100000;
 
-//        X[0] = 0.0528428;
-//        X[1] = 0.0356403;
+    for(int i = 0; i < maxIter; ++i){
 
         k           = KThetaFunc ( X );
         //std::cout << "Computed K" << std::endl;
         k_inv       = k.inverse();
-        u_n         = uTheta(X) ;
-        //std::cout << "Computed u_n" << std::endl;
-        //std::cout << "L \n" << L << std::endl;
-        //std::cout << "\nu_n \n" << u_n << std::endl;
 
-        u           = L * uTheta(X);
-        //std::cout << "Computed u reduced" << std::endl;
+        for(int f = 0 ; f < numForcing; ++f){
 
+            u_n         = uTheta(X, f) ;
+            //std::cout << "Computed u_n" << std::endl;
+            //std::cout << "\nu_n \n" << u_n << std::endl;
 
-        du_dTheta   = L * dudThetaFunc(X, k_inv, u_n );
-        //std::cout << "Computed u etc." << std::endl;
+            u           = L * u_n;
+            //std::cout << "Computed u reduced" << std::endl;
 
+            du_dTheta   = L * dudThetaFunc(X, k_inv, u_n );
+            //std::cout << "Computed u etc." << std::endl;
 
-        grad = - ( X - priorMeans ).transpose() * PriorCovMatrixInv;
+            grad = - ( X - priorMeans ).transpose() * PriorCovMatrixInv;
 
-        //std::cout << grad << " " << std::endl;
-        //std::cout << "Computed grad prior term" << std::endl;
+            //std::cout << grad << " " << std::endl;
+            //std::cout << "Computed grad prior term" << std::endl;
 
-        for(int j = 0; j < trueSampleDisp.rows(); ++j){
+            for(int j = 0; j < trueSampleDispC[f].rows(); ++j){
 
-            for(int k = 0; k <trueSampleDisp.cols();++k ){
-                y_i(k,0)= trueSampleDisp(j, k);
+                for(int k = 0; k <trueSampleDispC[f].cols();++k ){
+                    y_i(k,0)= trueSampleDispC[f](j, k);
+                }
+                //std::cout << u << "\n\n " << y_i<< "\n\n " << CovMatrixNoiseInv<< "\n\n " << du_dTheta << std::endl;
+                grad -= (y_i - u).transpose() * CovMatrixNoiseInvC[f] * -1. * du_dTheta ;
             }
-            //std::cout << u << "\n\n " << y_i<< "\n\n " << CovMatrixNoiseInv<< "\n\n " << du_dTheta << std::endl;
-            grad -= (y_i - u).transpose() * CovMatrixNoiseInv * -1. * du_dTheta ;
+
         }
 
         bool gradNull; gradNull = true;
@@ -400,14 +418,9 @@ int main(){
             break ;
         }
 
-        //std::cout << "Computed grad" << std::endl;
-
-//       X = X + hess.inverse() * grad.transpose();
-       //if( i == maxIter - 1){ LaplaceHess_inv = -1 * hess.inverse(); }
-       //X = X - 0.01*hess.inverse() * grad.transpose();
 
 
-       X = X + 0.00000005 * grad.transpose();
+       X = X + 0.00000001 * grad.transpose();
 
        for(int j = 0; j < X.size(); ++j){
            if(X[j] < 0.){
@@ -415,14 +428,10 @@ int main(){
            }
        }
 
-       //X = X + 0.00005 * grad.transpose();
-
-
-       //std::cout << "X \n" << X << "\n\n";
-
        for(int d = 0; d < plotParaIndex.size(); ++d){
            NRFile << X[ plotParaIndex[d] ] << " ";
        } NRFile << "\n";
+
     }
 
     for(int i = 0; i < paraIndex.size() ; ++i){
@@ -431,45 +440,42 @@ int main(){
         thetaHat_b( i, 0 ) = 1;
         hess_b = -1 * thetaHat_b.transpose( ) * PriorCovMatrixInv;
 
-      //du_dtheta_b = L * dudtheta_iFunc( X, k_inv, dKdTheta_iFunc (X,  paraIndex[i] ),  u_n )  ;
-        du_dtheta_b = L * dudtheta_iFunc( X, k_inv, dKdTheta_iFunc (X,  i ),  u_n )  ;
+        for(int f = 0 ; f < numForcing; ++f){
 
-        // compute du2_dthetab_dTheta and drop unobserved dofs
+            u_n = uTheta(X, f) ;
 
-        //du2_dthetab_dTheta = L * du2_dthetab_ThetaFunc( X,  k_inv, u_n , paraIndex[i] );
-        du2_dthetab_dTheta = L * du2_dthetab_ThetaFunc( X,  k_inv, u_n , i );
+            du_dtheta_b = L * dudtheta_iFunc( X, k_inv, dKdTheta_iFunc (X,  i ),  u_n )  ;
+
+            du2_dthetab_dTheta = L * du2_dthetab_ThetaFunc( X,  k_inv, u_n , i );
 
 
-        for(int j = 0; j < trueSampleDisp.rows(); ++j){
+            for(int j = 0; j < trueSampleDispC[f].rows(); ++j){
 
-            for(int k = 0; k < trueSampleDisp.cols();++k ){
-                          y_i(k,0)= trueSampleDisp(j, k);
-                      }
+                for(int k = 0; k < trueSampleDispC[f].cols();++k ){
+                              y_i(k,0)= trueSampleDispC[f](j, k);
+                          }
 
-            hess_b -= (y_i - u).transpose() * CovMatrixNoiseInv * -1 * du2_dthetab_dTheta;
-            hess_b -= du_dtheta_b.transpose() * CovMatrixNoiseInv * du_dTheta;
+                hess_b -= (y_i - u).transpose() * CovMatrixNoiseInvC[f] * -1 * du2_dthetab_dTheta;
+                hess_b -= du_dtheta_b.transpose() * CovMatrixNoiseInvC[f] * du_dTheta;
 
+            }
         }
+
         for(int d = 0; d < DimPara; ++d){
 
             hess( i, d) = hess_b( 0, d );
         }
     }
-    LaplaceHess_inv = -1 * hess.inverse();
 
     std::cout << "Done Newton Ralphson" << std::endl;
 
-
     NRFile.close();
     Eigen::MatrixXd negLogHess = -1 * hess;
-    //std::cout << "LogHess\n" <<-1*negLogHess << std::endl;
-    Eigen::MatrixXd stdLaplaceInv = negLogHess;
-    Eigen::MatrixXd stdLaplace = negLogHess.inverse();
 
     std::cout << "LaplaceMAP \n" << X << "\n\n";
     std::cout << "grad \n" << grad << "\n\n";
     std::cout << "hess \n" << hess << "\n\n";
-    std::cout << "LaplaceHess_inv \n" << LaplaceHess_inv << "\n\n";
+    std::cout << "LaplaceHess_inv \n" << -1 * hess.inverse() << "\n\n";
 
     Eigen::VectorXd LaplaceMAP = X;
 
@@ -477,7 +483,7 @@ int main(){
 //Eval True Pdf to plot ---------------------------------------------------------
 
     std::cout << "Computing scatter points true pdf \n-----------------------------------------------" << '\n';
-
+    //return 0;
 
     Eigen::VectorXd xPost( DimPara ); xPost = LaplaceMAP;
 
@@ -490,11 +496,11 @@ int main(){
     std::ofstream myFile;
     myFile.open("pdfResults.dat");
 
-    double a = 0.001;//-0.08;
-    double b = 0.1;
+    double a = 0.025;//-0.08;
+    double b = 0.045;
 
-    double c = 0.001;
-    double d = 0.1;
+    double c = 0.05;
+    double d = 0.07;
 
     int samplesX = 1 * 1e2;
     if (plot_1_dim) {samplesX = 1;}
@@ -505,12 +511,14 @@ int main(){
     if (plot_1_dim) {dx = 1;}
     double dy = (double) (d - c) / samplesY;
 
-    double bottomLim = -1.;
+    double bottomLim = -0.1;
 
    //Eigen::MatrixXd evaluations ( samplesX * samplesY , 2);
    Eigen::MatrixXd evaluations ( samplesX * samplesY , dimEval + 1);
 
    unsigned ctr = 0;
+
+   double Nan = 0; double NotNan = 0;
 
    for(int i = 0; i < samplesX; ++i){
 
@@ -518,14 +526,83 @@ int main(){
 
        for(int j = 0; j < samplesY; ++j){
 
-          xPost[ plotParaIndex[1] ] = c + (double) dy * ( j + 1) ;
+           xPost[ plotParaIndex[1] ] = c + (double) dy * ( j + 1) ;
+
+           //--------Eval True Post-----------
+
+           //LikVals =  PostFunc.Eval( xPost ) ;
+
+           LikVals = - 1./2.* std::log( PriorCovMatrix.determinant() )
+                     - 1./2.* (xPost - priorMeans).transpose() * PriorCovMatrixInv * (xPost - priorMeans) ;
+           //std::cout << "LikVals1 " << LikVals << std::endl;
+           if( std::isnan(LikVals) ){ std::cout << "is nan 1 \n";}
+
+           for(int f = 0 ; f < numForcing; ++f){
+
+               u_n         = uTheta(xPost, f) ;
+
+               u           = L * u_n;
+
+               LikVals += - (double) trueSampleDispC[f].rows() / 2.0 * std::log( CovMatrixNoiseInvC[f].inverse().determinant() ) ;
+               //std::cout << "LikVals2 " << LikVals << std::endl;
+               if( std::isnan(LikVals) ){ std::cout << "is nan 2 \n";}
+
+               for(int l = 0; l < trueSampleDispC[f].rows(); ++l){
+
+                   for(int k = 0; k < trueSampleDispC[f].cols(); ++k ){
+                       y_i(k,0)= trueSampleDispC[f](l, k);
+                   }
+
+//                   std::cout <<  " y_i \n" <<  y_i  << "\n";
+//                   std::cout <<  " u \n" <<  u  << "\n";
+//                   std::cout <<  "- 1./2. * (y_i - u).transpose()\n" << - 1./2. * (y_i - u).transpose() << "\n";
+//                   std::cout <<  "CovMatrixNoiseInvC[f]\n" << CovMatrixNoiseInvC[f] << "\n";
+//                   std::cout <<  "( y_i - u )\n" << ( y_i - u ) << "\n";
+
+//                   std::cout << "\n Answer  \n" << - 1./2. * (y_i - u).transpose() * CovMatrixNoiseInvC[f] * ( y_i - u ) << "\n"  ;
+//                   std::cout << "\n Answer.rows()  \n" << (- 1./2. * (y_i - u).transpose() * CovMatrixNoiseInvC[f] * ( y_i - u )).rows() << "\n"  ;
+//                   std::cout << "\n Answer.cols()  \n" << (- 1./2. * (y_i - u).transpose() * CovMatrixNoiseInvC[f] * ( y_i - u )).cols() << "\n"  ;
+//                   std::cout << "\n Answer.(0,0)  \n" << (- 1./2. * (y_i - u).transpose() * CovMatrixNoiseInvC[f] * ( y_i - u ))(0,0) << "\n"  ;
+//
+
+                   LikVals += - ( 1./2. * (y_i - u).transpose() * CovMatrixNoiseInvC[f] * ( y_i - u ))(0, 0)   ;
+                   //std::cout << "LikVals3 " << LikVals << "\n\n";
+                   if( std::isnan(LikVals) ){
+                       Nan +=1;
+
+                       std::cout << "IS NAN! " << Nan << std::endl;
+                       std::cout <<  " xPost \n" <<  xPost  << "\n";
+
+                       std::cout <<  " KThetaFunc ( xPost ) \n" <<  KThetaFunc ( xPost )  << "\n";
+
+                       //std::cout <<  " u_n \n" <<  u_n  << "\n";
+                       //std::cout <<  " u \n" <<  u  << "\n";
+//                       std::cout <<  " y_i \n" <<  y_i  << "\n";
+//                        std::cout <<  " u \n" <<  u  << "\n";
+//                        std::cout <<  "- 1./2. * (y_i - u).transpose()\n" << - 1./2. * (y_i - u).transpose() << "\n";
+//                        std::cout <<  "CovMatrixNoiseInvC[f]\n" << CovMatrixNoiseInvC[f] << "\n";
 
 
-           LikVals =  PostFunc.Eval( xPost ) ;
-           //std::cout << LikVals << std::endl;
+                       std::cout << "is nan 3 \n";}
+                   else{
+                       NotNan+=1;
+                       //std::cout << "IS NotNan! " << NotNan << std::endl;
 
 
-           if(LikVals > maxVal){
+                       //std::cout << "Not NAN! \n";
+                       //std::cout <<  " xPost \n" <<  xPost  << "\n";
+                       //std::cout <<  " u_n \n" <<  u_n  << "\n";
+
+
+                   }
+
+               }
+           }
+           if( std::isnan(LikVals) ){
+               LikVals = -9e30;
+               std::cout << "is nan 4 \n";}
+           //--------Eval True Post-----------
+           if(LikVals > maxVal && !std::isnan(LikVals) ){
                maxVal = LikVals;
                maxXPost   = xPost;
            }
@@ -537,6 +614,9 @@ int main(){
            ctr++;
        }
    }
+   std::cout << "IS NotNan! " << NotNan << std::endl;
+   std::cout << "IS NAN! " << Nan << std::endl;
+
 
    for(int i = 0; i < evaluations.rows(); ++i){
        evaluations(i, dimEval ) = std::exp(evaluations(i, dimEval ) - maxVal) ;
@@ -548,6 +628,7 @@ int main(){
        evaluations(i, dimEval) = evaluations(i, dimEval) / Vol;
        //std::cout << evaluations(i, dimEval) << std::endl;
        if( evaluations(i, dimEval) > bottomLim ){
+           //std::cout << evaluations(i, 0) << " " << evaluations(i, 1) << " " << evaluations(i, 2) << std::endl;
            myFile << evaluations(i, 0) << " " << evaluations(i, 1) << " " << evaluations(i, 2) << std::endl;
        }
        //myFile << evaluations(i, 0) << " " << evaluations(i, 1) << std::endl;
