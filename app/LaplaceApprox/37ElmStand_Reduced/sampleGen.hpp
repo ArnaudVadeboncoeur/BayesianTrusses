@@ -107,6 +107,8 @@ void trueSampleGen( std::tuple<Eigen::MatrixXd, std::vector<double> >& trueSampl
 
 
         trueTrussFem.assembleS( );
+        std::cout << "trueTrussFem.getK() \n" << trueTrussFem.getK() <<std::endl;
+
         trueTrussFem.computeDisp( );
         trueTrussFem.computeForce( );
 

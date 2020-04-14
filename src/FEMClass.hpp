@@ -265,6 +265,8 @@ void FEMClass::computeDisp( ){
 
     disp_ =  S_.inverse() * force_ ;
 
+    //std::cout << "FemClassDisp\n" << disp_ << std::endl;
+
 
     if(verbosity_){
 

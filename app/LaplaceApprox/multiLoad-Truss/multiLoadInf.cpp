@@ -34,15 +34,26 @@ int main(){
     std::vector <Eigen::MatrixXd> trueSampleDispC = std::get<0>( trueSamplesTupleContainer );
     std::vector <Eigen::MatrixXd> trueForcingC    = std::get<1>( trueSamplesTupleContainer );
 
-    constexpr unsigned numForcing = 3;
+    int num = trueSampleDispC.size();
+    for(int i = num - 1; i >= 0; --i){
+        if(trueSampleDispC[i].rows() == 0){
+            trueSampleDispC.erase(trueSampleDispC.begin()+i);
+            trueForcingC.erase(trueForcingC.begin()+i);
+        }
+            //else{std::cout << trueForcingC[i] << std::endl;}
+
+    }
+    std::cout << trueSampleDispC.size() << std::endl;
+
+    int numForcing = trueSampleDispC.size();
 
     constexpr unsigned DimK       =  30;
-    constexpr unsigned DimObs     =  24 ;//1 node 3->x,y,z
-    constexpr unsigned DimPara    =  2 ;
+    constexpr unsigned DimObs     =  20 ;//1 node 3->x,y,z
+    constexpr unsigned DimPara    =  3 ;
 
     constexpr unsigned NumTotPara =  37;
 
-    std::vector<int> paraIndex     { 13, 16 };
+    std::vector<int> paraIndex     { 13, 16, 17};//, 16 };
     bool plot_1_dim = false;
     std::vector<int> plotParaIndex {0, 1};
 
@@ -60,25 +71,25 @@ int main(){
 //        }
 
     //Index of dofs observed -- x and y only
-//    Eigen::VectorXi nodesObs( 10 ); nodesObs <<   1, 2,3,4, 5, 8, 9,10,  11, 12;
-//        Eigen::VectorXi ObsIndex( nodesObs.size() * 2 );
-//        for(int j = 0; j < nodesObs.size(); ++j){
-//
-//            ObsIndex[ j*2 + 0] = nodesObs[j]*3 + 0;
-//            ObsIndex[ j*2 + 1] = nodesObs[j]*3 + 1;
-//        }
-    Eigen::VectorXi ObsIndex( DimObs );
-    ObsIndex << 3,  4,
-                6,  7,  8,
-                9,  10,
-                12, 13, 14,
-                15, 16,
+    Eigen::VectorXi nodesObs( 10 ); nodesObs <<   1, 2,3,4, 5, 8, 9,10,  11, 12;
+        Eigen::VectorXi ObsIndex( nodesObs.size() * 2 );
+        for(int j = 0; j < nodesObs.size(); ++j){
 
-                25, 25,
-                27, 28, 29,
-                30, 31,
-                33, 34, 35,
-                36, 37;//all non fixed x and y disp
+            ObsIndex[ j*2 + 0] = nodesObs[j]*3 + 0;
+            ObsIndex[ j*2 + 1] = nodesObs[j]*3 + 1;
+        }
+//    Eigen::VectorXi ObsIndex( DimObs );
+//    ObsIndex << 3,  4,
+//                6,  7,  8,
+//                9,  10,
+//                12, 13, 14,
+//                15, 16,
+//
+//                25, 25,
+//                27, 28, 29,
+//                30, 31,
+//                33, 34, 35,
+//                36, 37;//all non fixed x and y disp
 
 
     //Eigen::VectorXi ObsIndex( 3 ); ObsIndex << 9, 10, 11;
@@ -109,7 +120,7 @@ int main(){
     Eigen::VectorXd empStd( trueSampleDispC[f].cols() );
     empStd.setZero();
     //most reliable way of computing std it seems..
-    double propHalfMax = 0.5;
+    double propHalfMax = 0.1;
     for(int i = 0 ; i < empStd.size(); ++i){
             empStd[i] = ( std::abs( empMean[i] ) * propHalfMax ) / 2.355;
         }
@@ -157,23 +168,14 @@ int main(){
 
         for(int j = 0; j < paraIndex.size(); ++j){
             TrussFem.modA(paraIndex[j], X[j] );
-//            std::cout << "paraIndex[j] \n" << paraIndex[j] <<std::endl;
-//            std::cout << "X[j] \n" << X[j]  <<std::endl;
-
         }
 
-        //std::cout << "Pre1 - TrussFem.getForce() \n" << TrussFem.getForce() <<std::endl;
         TrussFem.modForce( trueForcingC[forcingIndex] );
-        //std::cout << "Post1 - TrussFem.getForce() \n" << TrussFem.getForce() <<std::endl;
-        //std::cout << "TrussFem.getK()1 \n" << TrussFem.getK() <<std::endl;
 
         TrussFem.assembleS();
-        //std::cout << "Post2 - TrussFem.getForce() \n" << TrussFem.getForce() <<std::endl;
-        //std::cout << "TrussFem.getK()2 \n" << TrussFem.getK() <<std::endl;
 
         TrussFem.computeDisp();
         Eigen::VectorXd u = TrussFem.getDisp();
-        //std::cout << "Start TrussFem.getDisp() \n" << TrussFem.getDisp() << "END TrussFem.getDisp() \n"<<std::endl;
         TrussFem.FEMClassReset(false);
 
         return u;
@@ -236,7 +238,6 @@ int main(){
 
        for(int i = 0; i < X.rows(); ++i ){
 
-           //std::cout << "dKdTheta_iFunc( X, i) \n" <<dKdTheta_iFunc( X, i) << "\n\n";
            dudtheta_i = dudtheta_iFunc( X, K_inv, dKdTheta_iFunc( X, i), u );
            for(int j = 0; j < u.rows(); ++j ){
                dudTheta(j, i) = dudtheta_i(j);
@@ -299,13 +300,15 @@ int main(){
 //Newton Ralphson to find MAP--------------------------------------------
 
 
-    Eigen::VectorXd X(DimPara); X.setConstant(0.075);
+    Eigen::VectorXd X(DimPara); X.setConstant(0.07);
+    Eigen::VectorXd XPast(DimPara); XPast.setConstant(0.07);
     double Null = 1e-14 ;
     Eigen::MatrixXd k(DimK, DimK);
     Eigen::MatrixXd k_inv(DimK, DimK);
     Eigen::MatrixXd dk_dtheta(DimPara, DimPara);
     Eigen::MatrixXd y_i(DimObs, 1);
     Eigen::MatrixXd u  ( DimObs,  1 );
+    Eigen::MatrixXd uPast  ( DimObs,  1 );
     Eigen::MatrixXd u_n( DimK  ,  1 );
     Eigen::MatrixXd du_dTheta( DimObs, DimPara );
 
@@ -372,13 +375,16 @@ int main(){
 
 
     //N-R iterations
-    int maxIter = 100000;
+    int maxIter = 2000;
+    double step = 0.02;
 
     for(int i = 0; i < maxIter; ++i){
 
         k           = KThetaFunc ( X );
         //std::cout << "Computed K" << std::endl;
         k_inv       = k.inverse();
+        grad = - ( X - priorMeans ).transpose() * PriorCovMatrixInv;
+
 
         for(int f = 0 ; f < numForcing; ++f){
 
@@ -392,7 +398,6 @@ int main(){
             du_dTheta   = L * dudThetaFunc(X, k_inv, u_n );
             //std::cout << "Computed u etc." << std::endl;
 
-            grad = - ( X - priorMeans ).transpose() * PriorCovMatrixInv;
 
             //std::cout << grad << " " << std::endl;
             //std::cout << "Computed grad prior term" << std::endl;
@@ -402,7 +407,7 @@ int main(){
                 for(int k = 0; k <trueSampleDispC[f].cols();++k ){
                     y_i(k,0)= trueSampleDispC[f](j, k);
                 }
-                //std::cout << u << "\n\n " << y_i<< "\n\n " << CovMatrixNoiseInv<< "\n\n " << du_dTheta << std::endl;
+                //std::cout <<"(y_i - u).transpose() * CovMatrixNoiseInvC[f] * -1. * du_dTheta ;" << (y_i - u).transpose() * CovMatrixNoiseInvC[f] * -1. * du_dTheta << std::endl;
                 grad -= (y_i - u).transpose() * CovMatrixNoiseInvC[f] * -1. * du_dTheta ;
             }
 
@@ -419,8 +424,43 @@ int main(){
         }
 
 
+//       if( 0.00000005 * grad.transpose()(0,0) > 0.1 || 0.00000005 * grad.transpose()(1,0) > 0.1 ){
+//
+//           std::cout << "big jump \n";
+//           std::cout << "grad \n" << grad << "\n";
+//           std::cout << "X \n" << X << "\n";
+//           std::cout << "u \n" << u << "\n";
+//           std::cout << "uPast \n" << uPast << "\n";
+//           std::cout << "du_dTheta \n" << du_dTheta << "\n";
+//           std::cout << "(y_i - u) \n" << (y_i - u) << "\n";
+//           int f = 0;
+//           for(int j = 0; j < trueSampleDispC[f].rows(); ++j){
+//
+//               for(int k = 0; k <trueSampleDispC[f].cols();++k ){
+//                   y_i(k,0)= trueSampleDispC[f](j, k);
+//               }
+//               std::cout <<"(y_i - u).transpose() * CovMatrixNoiseInvC[f] * -1. * du_dTheta ;" << (y_i - u).transpose() * CovMatrixNoiseInvC[f] * -1. * du_dTheta << std::endl;
+//               std::cout <<"(y_i - u).transpose() " << (y_i - u).transpose() << std::endl;
+//
+//           }
+//       }
+//       uPast = u;
 
-       X = X + 0.00000001 * grad.transpose();
+       //X = X + 0.00000005 * grad.transpose();
+        if(i % 2 == 0){
+            if( (X - XPast).norm() < step/4. ){
+                step = step/2.;
+            }
+            XPast = X;
+        }
+       X = X + step *  1. / grad.norm() *  grad.transpose() ;
+       
+//       std::cout <<"grad.transpose() " << grad.transpose() << std::endl;
+//       std::cout <<"grad.norm() " << grad.norm() << std::endl;
+//       std::cout <<"0.0005 *  1. / grad.norm() *  grad.transpose() ; " << 0.0005 *  1. / grad.norm() *  grad.transpose()  << std::endl;
+
+
+
 
        for(int j = 0; j < X.size(); ++j){
            if(X[j] < 0.){
@@ -444,6 +484,10 @@ int main(){
 
             u_n = uTheta(X, f) ;
 
+            u   = L * u_n;
+
+            du_dTheta   = L * dudThetaFunc(X, k_inv, u_n );
+
             du_dtheta_b = L * dudtheta_iFunc( X, k_inv, dKdTheta_iFunc (X,  i ),  u_n )  ;
 
             du2_dthetab_dTheta = L * du2_dthetab_ThetaFunc( X,  k_inv, u_n , i );
@@ -452,8 +496,8 @@ int main(){
             for(int j = 0; j < trueSampleDispC[f].rows(); ++j){
 
                 for(int k = 0; k < trueSampleDispC[f].cols();++k ){
-                              y_i(k,0)= trueSampleDispC[f](j, k);
-                          }
+                    y_i(k,0)= trueSampleDispC[f](j, k);
+                }
 
                 hess_b -= (y_i - u).transpose() * CovMatrixNoiseInvC[f] * -1 * du2_dthetab_dTheta;
                 hess_b -= du_dtheta_b.transpose() * CovMatrixNoiseInvC[f] * du_dTheta;
@@ -496,11 +540,11 @@ int main(){
     std::ofstream myFile;
     myFile.open("pdfResults.dat");
 
-    double a = 0.025;//-0.08;
-    double b = 0.045;
+    double a = 0.01;//-0.08;
+    double b = 0.1;
 
-    double c = 0.05;
-    double d = 0.07;
+    double c = 0.01;
+    double d = 0.1;
 
     int samplesX = 1 * 1e2;
     if (plot_1_dim) {samplesX = 1;}
@@ -511,7 +555,7 @@ int main(){
     if (plot_1_dim) {dx = 1;}
     double dy = (double) (d - c) / samplesY;
 
-    double bottomLim = -0.1;
+    double bottomLim = -1e-3;
 
    //Eigen::MatrixXd evaluations ( samplesX * samplesY , 2);
    Eigen::MatrixXd evaluations ( samplesX * samplesY , dimEval + 1);
@@ -553,46 +597,21 @@ int main(){
                        y_i(k,0)= trueSampleDispC[f](l, k);
                    }
 
-//                   std::cout <<  " y_i \n" <<  y_i  << "\n";
-//                   std::cout <<  " u \n" <<  u  << "\n";
-//                   std::cout <<  "- 1./2. * (y_i - u).transpose()\n" << - 1./2. * (y_i - u).transpose() << "\n";
-//                   std::cout <<  "CovMatrixNoiseInvC[f]\n" << CovMatrixNoiseInvC[f] << "\n";
-//                   std::cout <<  "( y_i - u )\n" << ( y_i - u ) << "\n";
-
-//                   std::cout << "\n Answer  \n" << - 1./2. * (y_i - u).transpose() * CovMatrixNoiseInvC[f] * ( y_i - u ) << "\n"  ;
-//                   std::cout << "\n Answer.rows()  \n" << (- 1./2. * (y_i - u).transpose() * CovMatrixNoiseInvC[f] * ( y_i - u )).rows() << "\n"  ;
-//                   std::cout << "\n Answer.cols()  \n" << (- 1./2. * (y_i - u).transpose() * CovMatrixNoiseInvC[f] * ( y_i - u )).cols() << "\n"  ;
-//                   std::cout << "\n Answer.(0,0)  \n" << (- 1./2. * (y_i - u).transpose() * CovMatrixNoiseInvC[f] * ( y_i - u ))(0,0) << "\n"  ;
-//
 
                    LikVals += - ( 1./2. * (y_i - u).transpose() * CovMatrixNoiseInvC[f] * ( y_i - u ))(0, 0)   ;
                    //std::cout << "LikVals3 " << LikVals << "\n\n";
                    if( std::isnan(LikVals) ){
                        Nan +=1;
 
-                       std::cout << "IS NAN! " << Nan << std::endl;
-                       std::cout <<  " xPost \n" <<  xPost  << "\n";
-
-                       std::cout <<  " KThetaFunc ( xPost ) \n" <<  KThetaFunc ( xPost )  << "\n";
-
-                       //std::cout <<  " u_n \n" <<  u_n  << "\n";
-                       //std::cout <<  " u \n" <<  u  << "\n";
-//                       std::cout <<  " y_i \n" <<  y_i  << "\n";
-//                        std::cout <<  " u \n" <<  u  << "\n";
-//                        std::cout <<  "- 1./2. * (y_i - u).transpose()\n" << - 1./2. * (y_i - u).transpose() << "\n";
-//                        std::cout <<  "CovMatrixNoiseInvC[f]\n" << CovMatrixNoiseInvC[f] << "\n";
-
-
-                       std::cout << "is nan 3 \n";}
+//                       std::cout << "IS NAN! " << Nan << std::endl;
+//                       std::cout <<  " xPost \n" <<  xPost  << "\n";
+//
+//                       std::cout <<  " KThetaFunc ( xPost ) \n" <<  KThetaFunc ( xPost )  << "\n";
+//
+//                       std::cout << "is nan 3 \n";
+                       }
                    else{
                        NotNan+=1;
-                       //std::cout << "IS NotNan! " << NotNan << std::endl;
-
-
-                       //std::cout << "Not NAN! \n";
-                       //std::cout <<  " xPost \n" <<  xPost  << "\n";
-                       //std::cout <<  " u_n \n" <<  u_n  << "\n";
-
 
                    }
 
@@ -614,8 +633,8 @@ int main(){
            ctr++;
        }
    }
-   std::cout << "IS NotNan! " << NotNan << std::endl;
-   std::cout << "IS NAN! " << Nan << std::endl;
+   std::cout << "IS NotNan " << NotNan << std::endl;
+   std::cout << "IS NAN " << Nan << std::endl;
 
 
    for(int i = 0; i < evaluations.rows(); ++i){

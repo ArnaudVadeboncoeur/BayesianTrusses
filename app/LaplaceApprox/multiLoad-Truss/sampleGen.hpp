@@ -30,7 +30,7 @@ using DataCont =   std::tuple < std::vector<Eigen::MatrixXd>, std::vector<Eigen:
 
 DataCont trueSampleGen( ){
 
-    constexpr double numLoadingCases = 3;
+    int numLoadingCases = 5;
 
     DataCont trueSamplesTupleContainer;
 
@@ -42,7 +42,9 @@ DataCont trueSampleGen( ){
     std::random_device rd;
     std::mt19937 engine( rd() );
 
-    std::vector <int> numSamples {5, 5, 6};
+    //std::vector <int> numSamples {3, 3, 0, 0, 0};
+    std::vector <int> numSamples {2, 2, 2, 2, 0};
+
 
 
 //---------------------- Determining Indeces of Observed Data ------------------------------------
@@ -60,26 +62,26 @@ DataCont trueSampleGen( ){
 //            ObsIndex[ j*3 + 2] = nodesObs[j]*3 + 2;
 //        }
 //
-//    Eigen::VectorXi nodesObs( 10 ); nodesObs <<   1, 2,3,4, 5, 8, 9,10,  11, 12;    Eigen::VectorXi ObsIndex( nodesObs.size() * 2 );
-//            for(int j = 0; j < nodesObs.size(); ++j){
+    Eigen::VectorXi nodesObs( 10 ); nodesObs <<   1, 2,3,4, 5, 8, 9,10,  11, 12;    Eigen::VectorXi ObsIndex( nodesObs.size() * 2 );
+            for(int j = 0; j < nodesObs.size(); ++j){
+
+                ObsIndex[ j*2 + 0] = nodesObs[j]*3 + 0;
+                ObsIndex[ j*2 + 1] = nodesObs[j]*3 + 1;
+            }
+
+//    //all non fixed x and y disp
+//    Eigen::VectorXi ObsIndex( 24 );
+//    ObsIndex << 3,  4,
+//                6,  7,  8,
+//                9,  10,
+//                12, 13, 14,
+//                15, 16,
 //
-//                ObsIndex[ j*2 + 0] = nodesObs[j]*3 + 0;
-//                ObsIndex[ j*2 + 1] = nodesObs[j]*3 + 1;
-//            }
-
-    //all non fixed x and y disp
-    Eigen::VectorXi ObsIndex( 24 );
-    ObsIndex << 3,  4,
-                6,  7,  8,
-                9,  10,
-                12, 13, 14,
-                15, 16,
-
-                25, 25,
-                27, 28, 29,
-                30, 31,
-                33, 34, 35,
-                36, 37;
+//                25, 25,
+//                27, 28, 29,
+//                30, 31,
+//                33, 34, 35,
+//                36, 37;
 
     //Eigen::VectorXi ObsIndex( 10 ); ObsIndex << 4, 7, 10, 13, 16, 25, 28, 31, 34, 37;//all non fixed y disp
     //Eigen::VectorXi ObsIndex( 3 ); ObsIndex << 9, 10, 11;
@@ -95,21 +97,42 @@ DataCont trueSampleGen( ){
     forcing1.setZero();
     forcing1( 2 * 3 + 1  , 0 )  = -1e4;
     forcing1( 4 * 3 + 1  , 0 )  = -2e4;
+    forcing1( 9 * 3 + 1  , 0 )  = -1e4;
+    forcing1( 11 * 3 + 1  , 0 )  = -2e4;
+
     forcing1( 11 * 3 + 0 , 0 )  = -1e4;
+    forcing1( 4 * 3  + 0  , 0 )  = -2e4;
+
+    forceContainer[0] = forcing1;
+
 
     Eigen::MatrixXd forcing2 ( 14 * 3 , 1 ) ;
     forcing2.setZero();
-    forcing2( 4 * 3 + 2 ) = -2e4;
-    forcing2( 4 * 3 + 1 ) = -2e4;
+    forcing2( 2 * 3 + 2 , 0 ) = -2e4;
+    forcing2( 2 * 3 + 1 , 0 ) = -2e4;
+
+    forceContainer[1] = forcing2;
+
 
     Eigen::MatrixXd forcing3 ( 14 * 3 , 1 ) ;
     forcing3.setZero();
-    forcing3( 9 * 3 + 1 ) =  1e4;
+    forcing3( 9 * 3 + 1 , 0 ) =  1e4;
 
-    forceContainer[0] = forcing1;
-    forceContainer[1] = forcing2;
     forceContainer[2] = forcing3;
 
+    Eigen::MatrixXd forcing4 ( 14 * 3 , 1 ) ;
+    forcing4.setZero();
+    forcing4( 9 * 3  + 0  , 0 )  = -1e4;
+    forcing4( 2 * 3  + 0  , 0 )  = -2e4;
+
+    forceContainer[3] = forcing4;
+
+    Eigen::MatrixXd forcing5 ( 14 * 3 , 1 ) ;
+    forcing5.setZero();
+    forcing5( 11 * 3 + 0 , 0 )  = -2e4;
+    forcing5( 4 * 3  + 0  , 0 )  =  2e4;
+
+    forceContainer[4] = forcing5;
 
 
 
@@ -127,27 +150,20 @@ DataCont trueSampleGen( ){
     for(int f = 0 ; f < numLoadingCases; ++f   ){
 
         Eigen::MatrixXd allSamples (numSamples[f], ObsIndex.size() );
-        std::cout << "Here-Now1" << std::endl;
 
         trueTrussFem.modForce( forceContainer[f] );
-        std::cout << "Here-Now2" << std::endl;
 
         double A1 = 0.04 ;
         trueTrussFem.modA(13, A1);
-        std::cout << "Here-Now3" << std::endl;
 
         trueTrussFem.assembleS( );
-        std::cout << "Here-Now4-1" << std::endl;
-        //std::cout << "trueTrussFem.getK() \n" << trueTrussFem.getK() <<std::endl;
 
 
         trueTrussFem.computeDisp( );
         //trueTrussFem.computeForce( );
-        std::cout << "Here-Now4" << std::endl;
 
         dofK = trueTrussFem.getFreeDof() ;
         Eigen::VectorXd dispTruss = trueTrussFem.getDisp( );
-        std::cout << "Here-Now5" << std::endl;
 
         double propHalfMax = 0.5;
 
@@ -185,8 +201,6 @@ DataCont trueSampleGen( ){
     myTrueFile.close();
 
     trueSamplesTupleContainer = std::make_tuple( allSamplesContainer, forceContainer );
-
-    //std::cout << "trueTrussFem.getK() \n" << trueTrussFem.getK() <<std::endl;
 
     return trueSamplesTupleContainer;
 
