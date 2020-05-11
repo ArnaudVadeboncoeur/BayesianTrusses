@@ -11,10 +11,6 @@
 
 #include "../../../src/FEMClass.hpp"
 
-#include "ThreeDTruss37Elm.hpp"
-//#include "ThreeDTruss23Elm.hpp"
-//#include "ThreeDTruss3Elm.hpp"
-
 #include <Eigen/Dense>
 
 #include <iostream>
@@ -24,6 +20,7 @@
 #include <random>
 #include <cmath>
 #include <math.h>
+#include "ThreeDTruss37Elm.hpp"
 
 using DataCont =   std::tuple < std::vector<Eigen::MatrixXd>, std::vector<Eigen::MatrixXd> > ;
 
@@ -43,7 +40,7 @@ DataCont trueSampleGen( ){
     std::mt19937 engine( rd() );
 
     //std::vector <int> numSamples {3, 3, 0, 0, 0};
-    std::vector <int> numSamples {2, 2, 2, 2, 0};
+    std::vector <int> numSamples {5,5,5,5, 5};
 
 
 
@@ -62,6 +59,11 @@ DataCont trueSampleGen( ){
 //            ObsIndex[ j*3 + 2] = nodesObs[j]*3 + 2;
 //        }
 //
+
+    //Eigen::VectorXi ObsIndex( 4 ); ObsIndex << 6, 7, 12, 13;
+
+    //Eigen::VectorXi ObsIndex( 4 ); ObsIndex << 7, 13, 28, 34;
+
     Eigen::VectorXi nodesObs( 10 ); nodesObs <<   1, 2,3,4, 5, 8, 9,10,  11, 12;    Eigen::VectorXi ObsIndex( nodesObs.size() * 2 );
             for(int j = 0; j < nodesObs.size(); ++j){
 
@@ -100,16 +102,16 @@ DataCont trueSampleGen( ){
     forcing1( 9 * 3 + 1  , 0 )  = -1e4;
     forcing1( 11 * 3 + 1  , 0 )  = -2e4;
 
-    forcing1( 11 * 3 + 0 , 0 )  = -1e4;
-    forcing1( 4 * 3  + 0  , 0 )  = -2e4;
+    //forcing1( 11 * 3 + 0 , 0 )  = -1e4;
+    //forcing1( 4 * 3  + 0  , 0 )  = -2e4;
 
     forceContainer[0] = forcing1;
 
 
     Eigen::MatrixXd forcing2 ( 14 * 3 , 1 ) ;
     forcing2.setZero();
-    forcing2( 2 * 3 + 2 , 0 ) = -2e4;
-    forcing2( 2 * 3 + 1 , 0 ) = -2e4;
+    forcing2( 2 * 3 + 0 , 0 ) = -2e4;
+    forcing2( 9 * 3 + 0 , 0 ) = -2e4;
 
     forceContainer[1] = forcing2;
 
@@ -122,15 +124,15 @@ DataCont trueSampleGen( ){
 
     Eigen::MatrixXd forcing4 ( 14 * 3 , 1 ) ;
     forcing4.setZero();
-    forcing4( 9 * 3  + 0  , 0 )  = -1e4;
-    forcing4( 2 * 3  + 0  , 0 )  = -2e4;
+    forcing4( 4 * 3  + 0  , 0 )   = -2e4;
+    forcing4( 11 * 3  + 0  , 0 )  = -2e4;
 
     forceContainer[3] = forcing4;
 
     Eigen::MatrixXd forcing5 ( 14 * 3 , 1 ) ;
     forcing5.setZero();
-    forcing5( 11 * 3 + 0 , 0 )  = -2e4;
-    forcing5( 4 * 3  + 0  , 0 )  =  2e4;
+    forcing5( 11 * 3 + 2 , 0 )  = -2e4;
+    forcing5( 4 * 3  + 2  , 0 )  =  2e4;
 
     forceContainer[4] = forcing5;
 
@@ -165,7 +167,7 @@ DataCont trueSampleGen( ){
         dofK = trueTrussFem.getFreeDof() ;
         Eigen::VectorXd dispTruss = trueTrussFem.getDisp( );
 
-        double propHalfMax = 0.5;
+        double propHalfMax = 0.1;
 
         //compute Fullwidth half max
         Eigen::VectorXd fwhmStd ( ObsIndex.size() );

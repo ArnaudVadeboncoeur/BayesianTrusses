@@ -20,12 +20,9 @@
 #include <cmath>
 #include <math.h>
 
-#include "ThreeDTruss37Elm.hpp"
-//#include "ThreeDTruss23Elm.hpp"
-//#include "ThreeDTruss3Elm.hpp"
-
-#include "sampleGen.hpp"
-#include "PdfEval.hpp"
+#include "../multiLoad-Truss-April2020/PdfEval.hpp"
+#include "../multiLoad-Truss-April2020/sampleGen.hpp"
+#include "../multiLoad-Truss-April2020/ThreeDTruss37Elm.hpp"
 
 int main(){
 
@@ -47,15 +44,17 @@ int main(){
 
     int numForcing = trueSampleDispC.size();
 
-    constexpr unsigned DimK       =  30;
+    constexpr unsigned DimK       =  30 ;
     constexpr unsigned DimObs     =  20 ;//1 node 3->x,y,z
-    constexpr unsigned DimPara    =  3 ;
+    constexpr unsigned DimPara    =  10 ;
 
     constexpr unsigned NumTotPara =  37;
+    //these worked well -- {12, 13,14, 15, 16, 17  };
+    //std::vector<int> paraIndex     { 0, 1, 2,3,4, 5, 6, 7, 8, 9, 10, 11, 12, 13,14, 15, 16, 17 , 18, 19, 20, 21 };
+    std::vector<int> paraIndex     { 12, 13,14, 15, 16, 17 , 18, 19, 20, 21 };
 
-    std::vector<int> paraIndex     { 13, 16, 17};//, 16 };
     bool plot_1_dim = false;
-    std::vector<int> plotParaIndex {0, 1};
+    std::vector<int> plotParaIndex {7, 9};
 
 
     std::cout << "Here-main" << std::endl;
@@ -373,10 +372,16 @@ int main(){
                NRFile << X[ plotParaIndex[d] ] << " ";
            } NRFile << "\n";
 
+   std::ofstream FullDimOpt;
+   FullDimOpt.open("FullDimOpt.dat");
+   for(int d = 0; d < X.size(); ++d){
+       FullDimOpt << X[d] << " ";
+          } FullDimOpt << "\n";
+
 
     //N-R iterations
-    int maxIter = 2000;
-    double step = 0.02;
+    int maxIter = 1e4;
+    double step = 0.03;
 
     for(int i = 0; i < maxIter; ++i){
 
@@ -448,8 +453,8 @@ int main(){
 
        //X = X + 0.00000005 * grad.transpose();
         if(i % 2 == 0){
-            if( (X - XPast).norm() < step/4. ){
-                step = step/2.;
+            if( (X - XPast).norm() < 0.8 * step ){
+                step = step * 0.8 ;
             }
             XPast = X;
         }
@@ -471,6 +476,10 @@ int main(){
        for(int d = 0; d < plotParaIndex.size(); ++d){
            NRFile << X[ plotParaIndex[d] ] << " ";
        } NRFile << "\n";
+
+       for(int d = 0; d < X.size(); ++d){
+          FullDimOpt << X[d] << " ";
+       } FullDimOpt << "\n";
 
     }
 
