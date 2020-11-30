@@ -75,8 +75,6 @@ TupleTrussDef InitialTrussAssignment(){
             0,    0,   0, //-12
             1,    1,   1; //-13
 
-
-    //Node Connectivity
     members <<
             //front face
             0,   1,  //-0
@@ -201,24 +199,6 @@ TupleTrussDef InitialTrussAssignment(){
     //force applied at degree of freedom
 
     force.setZero();
-
-//    force <<
-//          //x      y     z
-//            0.,       0.,       0., //-0
-//            0,        0.,       0., //-1
-//            0.,       -2e5,     0, //-2
-//            0.,       0.,       0, //-3
-//            0.,       -2e5,     0, //-4
-//            0.,       0.,       0, //-5
-//            0.,       0.,       0., //-6
-//
-//            0.,       0.,       0., //-7
-//            0  ,      0.,       0., //-8
-//            0.,       -4e5,     -1e5, //-9
-//            0.,       0.,       0., //-10
-//            0.,       -1e4,     0, //-11
-//            0.,       0.,       0, //-12
-//            0.,       0.,       0.; //-13
 
 
     return std::make_tuple(    numberNodes,
