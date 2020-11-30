@@ -18,7 +18,7 @@
 
 
 
-template< typename Vect  >
+template< typename Vect , typename FUNC >
 class SVGD{
 public:
 

@@ -71,8 +71,21 @@ public:
     void modForce( int i_dof, int j_xyz, double forceMod )  { force_(i_dof * 3 + j_xyz, 0) = forceMod ; }
     void modForce( Eigen::MatrixXd Newforcing )             { force_ = Newforcing ; }
 
-    double getDisp(int dofIndex)         { return disp_[dofIndex] ; }
-    Eigen::VectorXd getDisp(   )         { return disp_ ; }
+    double getDisp(int dofIndex)          { return disp_[dofIndex] ; }
+    Eigen::VectorXd getDisp(   )          { return disp_ ; }
+
+
+    Eigen::VectorXd getDisp( Eigen::VectorXi dofs ) {
+
+    	Eigen::VectorXd disps (dofs.size() );
+    	for(int i = 0; i < dofs.size(); ++i){
+    		disps[i] = allDisp_[dofs[i]];
+    	}
+    	return disps ;
+    }
+
+
+    Eigen::VectorXd getAllDisp( )	     {return allDisp_; }
 
     double getForce(int dofIndex)        { return force_(dofIndex, 0) ; }
     Eigen::MatrixXd getForce(   )        { return force_ ; }
@@ -270,12 +283,12 @@ void FEMClass::computeDisp( ){
 
     if(verbosity_){
 
-    std::cout<<"at degrees of freedom disp is:\n\n";
+		std::cout<<"at degrees of freedom disp is:\n\n";
 
-    for(unsigned i =0; i < freeDof_.size(); ++i){
+		for(unsigned i =0; i < freeDof_.size(); ++i){
 
-       std::cout<<"dof: "<<freeDof_[i]<<'\t'<<"disp = "<<disp_(i)<<'\n';
-    }
+		   std::cout<<"dof: "<<freeDof_[i]<<'\t'<<"disp = "<<disp_(i)<<'\n';
+		}
     }
 
     for(int i = 0; i < freeDof_.size(); ++i){
