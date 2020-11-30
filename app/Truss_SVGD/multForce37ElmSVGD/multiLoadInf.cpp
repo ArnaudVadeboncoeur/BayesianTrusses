@@ -36,9 +36,9 @@ int main(){
     //these worked well --           {12, 13,14, 15, 16, 17  };
     //std::vector<int> paraIndex     { 0, 1, 2,3,4, 5, 6, 7, 8, 9, 10, 11, 12, 13,14, 15, 16, 17 , 18, 19, 20, 21 };
     //std::vector<int> paraIndex     { 12, 13,14, 15, 16, 17 , 18, 19, 20, 21 };
-    std::vector<int> paraIndex     {  13, 16 };
-    bool             plot_1_dim    = false;
-    std::vector<int> plotParaIndex {0, 1};
+    std::vector<int> paraIndex     {  13 , 16};
+    bool             plot_1_dim    = true;
+    std::vector<int> plotParaIndex {0 };
 
     //Index of dofs observed -- 2 = x and y only
     int Numxyz = 2;//1, 2, 3
@@ -62,9 +62,9 @@ int main(){
 
 //---------------------------------------Noise----------------------------------
 
-	Eigen::MatrixXd cov_n (DimPara, DimPara);
+	Eigen::MatrixXd cov_n (DimObs, DimObs);
 	cov_n.setZero();
-	for(int i = 0; i < DimPara; ++i){
+	for(int i = 0; i < DimObs; ++i){
 		cov_n(i,i) = sigma_n * sigma_n;
 	}
 	Eigen::MatrixXd cov_n_Inv = cov_n.inverse();
@@ -74,7 +74,7 @@ int main(){
     priorMeans.setConstant(0.06);
 
     Eigen::MatrixXd PriorCovMatrix (DimPara,DimPara); PriorCovMatrix.setZero();
-    Eigen::VectorXd priorStdVec(DimPara); priorStdVec.setConstant(0.1);
+    Eigen::VectorXd priorStdVec(DimPara); priorStdVec.setConstant(1);
     for(int i = 0; i < priorStdVec.size(); ++i){
 
         PriorCovMatrix(i, i) = pow(priorStdVec[i], 2) ;//* 0.1;
@@ -98,13 +98,12 @@ int main(){
 
 
    //Lambda function to compute u(Theta)
-    std::function < Eigen::VectorXd ( const Eigen::VectorXd, int) > uTheta;
-    uTheta = [ &TrussFem, paraIndex, trueForcingC ](const Eigen::VectorXd& X, int forcingIndex ){
+    std::function < Eigen::VectorXd ( const Eigen::MatrixXd, int) > uTheta;
+    uTheta = [ &TrussFem, paraIndex, trueForcingC ](const Eigen::MatrixXd& X, int forcingIndex ){
 
     	TrussFem.FEMClassReset(false);
-
         for(int j = 0; j < paraIndex.size(); ++j){
-            TrussFem.modA(paraIndex[j], X[j] );
+            TrussFem.modA(paraIndex[j], X(j,0) );
         }
 
         TrussFem.modForce( trueForcingC[forcingIndex] );
@@ -124,7 +123,7 @@ int main(){
         Eigen::MatrixXd K;
         //produce k(theta)
         for(int j = 0; j < paraIndex.size(); ++j){
-            TrussFem.modA(paraIndex[j], X(0,j));
+            TrussFem.modA(paraIndex[j], X(j,0));
         }
         TrussFem.assembleS();
         K = TrussFem.getK();
@@ -151,8 +150,8 @@ int main(){
     };
 
    //Labmda function to compute dudtheta_i
-   std::function < Eigen::VectorXd      ( Eigen::VectorXd, Eigen::MatrixXd,
-                                          Eigen::MatrixXd, Eigen::VectorXd ) > dudtheta_iFunc;
+   std::function < Eigen::VectorXd      ( const Eigen::VectorXd, const Eigen::MatrixXd,
+                                          const Eigen::MatrixXd, const Eigen::VectorXd ) > dudtheta_iFunc;
 
    dudtheta_iFunc = [ ](   const Eigen::VectorXd& X,          const Eigen::MatrixXd& K_inv,
                            const Eigen::MatrixXd& dKdtheta_b, const Eigen::VectorXd& u ){
@@ -186,97 +185,6 @@ int main(){
    };
 
 
-   //Labmda function to compute du2_dthetab_Theta
-	std::function < Eigen::MatrixXd ( const Eigen::VectorXd,
-									  const Eigen::MatrixXd, const Eigen::VectorXd, int, int) > du2_dthetai_dthetajFunc;
-
-	du2_dthetai_dthetajFunc = [ &dudtheta_iFunc, &dKdTheta_iFunc ]
-						      ( const Eigen::VectorXd& X, const Eigen::MatrixXd& K_inv,
-								const Eigen::VectorXd& u, int index_i, int index_j ){
-
-	 Eigen::MatrixXd du2_dthetai_dthetaj( X.rows(), 1 );
-
-	 Eigen::MatrixXd dudtheta_i(K_inv.rows(), 1 );
-	 Eigen::MatrixXd dudtheta_j(K_inv.rows(), 1 );
-
-	 Eigen::MatrixXd dK_dtheta_i(K_inv.rows(), K_inv.rows());
-	 Eigen::MatrixXd dK_dtheta_j(K_inv.rows(), K_inv.rows());
-
-	 dK_dtheta_i = dKdTheta_iFunc( X, index_i);
-	 dK_dtheta_j = dKdTheta_iFunc( X, index_j);
-
-	 dudtheta_i = dudtheta_iFunc( X, K_inv, dK_dtheta_i, u );
-	 dudtheta_j = dudtheta_iFunc( X, K_inv, dK_dtheta_j, u );
-
-	 du2_dthetai_dthetaj = - K_inv * ( dK_dtheta_i * dudtheta_j + dK_dtheta_j * dudtheta_i );
-
-	 return du2_dthetai_dthetaj;
-	};
-
-
-
-	//Labmda function to compute du2_dthetab_Theta
-	std::function < Eigen::MatrixXd    ( const Eigen::VectorXd,
-										 const Eigen::MatrixXd, const Eigen::VectorXd, int) > du2_dthetab_ThetaFunc;
-
-	du2_dthetab_ThetaFunc = [ &du2_dthetai_dthetajFunc ]( const Eigen::VectorXd& X, const Eigen::MatrixXd& K_inv,
-																         const Eigen::VectorXd& u, int index_b ){
-
-	  Eigen::MatrixXd du2_dthetab_Theta( K_inv.rows(),  X.rows() );
-	  Eigen::MatrixXd du2_dthetai_dthetaj(  K_inv.rows(), 1 );
-
-	  for(int i = 0; i < X.rows(); ++i ){
-
-		  du2_dthetai_dthetaj = du2_dthetai_dthetajFunc( X, K_inv, u, index_b, i );
-		  for(int j = 0; j < u.rows(); ++j ){
-			  du2_dthetab_Theta(j, i) = du2_dthetai_dthetaj(j, 0);
-
-			  }
-		  }
-
-	  return   du2_dthetab_Theta;
-	};
-
-
-
-//std::functions needed for SVGD
-//	- Particle Initialisation
-// 	- G(theta): -- forward model solution for all settings on Xn, matrix: [ n samples x n observed dims ]
-// 	- delxG(theta): derivative forward model, vector of matrices: < n samples x [ n Observed x n parameters ] >
-// 	- delxlogP(theta): use G(theta), Yobs, delxG(theta),L ,noise cov, prior to compute derivative of logP(x)
-// 	results in [n samples x n parameters]
-//
-//===========================New code -- get samples from SVGD===================================
-
-////Labmda function to compute dudTheta
-//   std::function < Eigen::MatrixXd ( const Eigen::VectorXd,
-//									 const Eigen::MatrixXd, const Eigen::VectorXd ) > dudThetaFunc;
-//
-//   dudThetaFunc = [ &dudtheta_iFunc, &dKdTheta_iFunc ]( const Eigen::VectorXd& X, const Eigen::MatrixXd& K_inv,
-//														const Eigen::VectorXd& u){
-//
-//	   Eigen::MatrixXd dudTheta( K_inv.rows(),  X.rows() );
-//
-//	   Eigen::VectorXd dudtheta_i( X.rows() );
-//
-//	   for(int i = 0; i < X.rows(); ++i ){
-//
-//		   dudtheta_i = dudtheta_iFunc( X, K_inv, dKdTheta_iFunc( X, i), u );
-//		   for(int j = 0; j < u.rows(); ++j ){
-//			   dudTheta(j, i) = dudtheta_i(j);
-//			   }
-//		   }
-//
-//	   return dudTheta;
-//   };
-
-
-
-////Lambda function to compute G(theta)
-////- G(theta): -- forward model solution for all settings on Xn, matrix:< nForcing x [ n samples x n observed dims ] >
-//=
-
-
 	Eigen::MatrixXd L( DimObs , DimK ); L.setZero();
 	   for(int i = 0; i < ObsIndex.size(); ++i ){
 	           for( int j = 0; j < dofK.size(); ++j ){
@@ -288,53 +196,84 @@ int main(){
 	       }
 
 	//compute del_xLogP(x)
-	std::function < Eigen::MatrixXd (const Eigen::MatrixXd) > delLogP;
-	delLogP = [&TrussFem, &KThetaFunc,  &dudThetaFunc, &uTheta,
-	           paraIndex, trueForcingC, DimK,DimObs, ObsIndex, ytL,
-	           L, cov_n_Inv, priorMeans, PriorCovMatrixInv ]
-	           (const  Eigen::MatrixXd& X ){
+    using tupMatMat = std::tuple< Eigen::MatrixXd, Eigen::MatrixXd > ;
 
-	   Eigen::MatrixXd delLogPVar (X.rows(), X.cols()); delLogPVar.setZero();
-	   Eigen::MatrixXd X_i (1, X.cols());
+	std::function < tupMatMat (const Eigen::MatrixXd) > delLogP;
+	delLogP = [&TrussFem,    &KThetaFunc,     &dudThetaFunc,    &uTheta,
+			   paraIndex,    DimK,DimObs,     DimPara,          ObsIndex,
+			   trueForcingC, trueSampleDispC, ytL, L,
+			   cov_n_Inv,    priorMeans,      PriorCovMatrixInv ]
+			   (const  Eigen::MatrixXd& X ){
 
-	   Eigen::MatrixXd k(DimK, DimK);
-      Eigen::MatrixXd k_inv(DimK, DimK);
+		Eigen::MatrixXd delLogPVar (X.rows(), X.cols()); delLogPVar.setZero();
+		Eigen::MatrixXd LogPVar    (X.rows(), 1 );       LogPVar.setZero();
 
-      Eigen::MatrixXd u(1, DimObs);
-      Eigen::MatrixXd u_n( DimK  ,  1 );
-      Eigen::MatrixXd du_dTheta ( DimObs, DimPara );
+		Eigen::MatrixXd X_i (1, X.cols());
 
-	   for(int i = 0; i < delLogPVar.rows(); ++i){
+		Eigen::MatrixXd k(DimK, DimK);
+		Eigen::MatrixXd k_inv(DimK, DimK);
 
-	      X_i   = X.row(i).transpose() ;
+		Eigen::MatrixXd u(DimObs, 1);
+		Eigen::MatrixXd u_n(DimK , 1 );
+		Eigen::MatrixXd du_dTheta ( DimObs, DimPara );
 
-	      k     =     KThetaFunc ( X_i ) ;
-	      k_inv =     k.inverse();
+		bool firstEval = true;
+		for(int i = 0; i < delLogPVar.rows(); ++i){
 
-	      delLogPVar.row(i) += - ( X_i - priorMeans ).transpose() * PriorCovMatrixInv;
+		  X_i                =     X.row(i).transpose() ;
+		  k                  =     KThetaFunc ( X_i ) ;
+		  k_inv              =     k.inverse();
+		  delLogPVar.row(i) += - ( X_i - priorMeans ).transpose() * PriorCovMatrixInv;
 
-	      for(int j = 0 ; j < ytL.rows() ; ++j){
+		  LogPVar(i,0)    += -1/2 * std::log( std::pow((2 * M_PI), X.cols()) * PriorCovMatrixInv.inverse().determinant() )
+						   - (1/2 * ( X_i - priorMeans ).transpose() * PriorCovMatrixInv * ( X_i - priorMeans )) (0,0)
+						   - (1/2 * ytL.rows() * std::log( std::pow((2 * M_PI), X.cols()) * cov_n_Inv.inverse().determinant() ));
+		  std::cout << " (1/2 * ( X_i - priorMeans ).transpose() * PriorCovMatrixInv * ( X_i - priorMeans )) " << (1/2 * ( X_i - priorMeans ).transpose() * PriorCovMatrixInv)   << std::endl;
 
-	         if(j > 0 ){
-	            if(ytL(j, 0) != ytL(j - 1, 0)){
+		  for(int j = 0 ; j < ytL.rows() ; ++j){
 
-	            u_n         = uTheta(X, f) ;
-	            u           = L * uTheta(X, ytL(j, 0) );
-               du_dTheta   = L * dudThetaFunc(X, k_inv, u_n );
-	         }}
-	         delLogPVar.row(i) -= (trueSampleDispC.row(j).transpose() - u).transpose() * cov_n_Inv * -1. * du_dTheta ;
-	         }
-	   }
+			  if(j > 0 ){ if(ytL(j, 0) == ytL(j - 1, 0)){ firstEval = false; } }
 
-	   return delLogPVar;
+			  if(firstEval){
+				  u_n         = uTheta(X_i, ytL(j, 0) ) ;
+				  u           = L * uTheta(X_i, ytL(j, 0) );
+				  du_dTheta   = L * dudThetaFunc(X_i, k_inv, u_n );
+			  }
+			  delLogPVar.row(i) -=  (trueSampleDispC.block(j,0,1, DimObs ) - u.transpose() ) * cov_n_Inv * -1. * du_dTheta;
+
+			  LogPVar.row(i)  -=    -1/2 * (trueSampleDispC.block(j,0,1, DimObs ) - u.transpose() ) * cov_n_Inv *
+					                	   (trueSampleDispC.block(j,0,1, DimObs ) - u.transpose() ).transpose();
+			  firstEval = true;
+
+		  }
+		}
+	tupMatMat results = std::make_tuple(LogPVar, delLogPVar);
+	return results;
 	};
+
+
+	Eigen::MatrixXd Xn (1,2); Xn <<  0.03, 0.03;
+	Eigen::MatrixXd delLogPMat = std::get<1>( delLogP(Xn) );
+	std::cout << delLogPMat << std::endl;
+	std::cout << std::get<0>( delLogP(Xn) ) << std::endl;
+	Eigen::MatrixXd  diff(1,1) ; diff << 1e-2;
+
+	std::cout << " Numderivative = "<< ( std::get<0>( delLogP(Xn-diff) ) - std::get<0>( delLogP(Xn) ) ) * diff.inverse()
+				<< std::endl;
+
+//	for (int i = 0; i < 100; ++i){
+//		Xn += delLogP(Xn) * 1e-1;
+//		std::cout << Xn << std::endl;
+//		std::cout << delLogP(Xn) << std::endl;
+//
+//	}
 
 return 0;}
 
-
-
-
 /*
+
+
+
 
 
 
@@ -425,10 +364,10 @@ return 0;}
 	}
 
 
-    return 0;
-}
+//    return 0;
+//}
 
-*/ /*
+ */ /*
 
 
 
