@@ -25,6 +25,10 @@ sig4 = 4
 mu4  = 3
 v = 1/(np.sqrt(2*np.pi)*sig4) * np.exp( -1/(2.*sig4**2)*(x-mu4)**2 )
 
+sig5 = 1.5
+mu5  = 0.5
+v = 1/(np.sqrt(2*np.pi)*sig5) * np.exp( -1/(2.*sig5**2)*(x-mu5)**2 )
+
 # setting the axes at the centre
 # fig = plt.figure()
 # ax = fig.add_subplot(1, 1, 1)
@@ -36,10 +40,11 @@ v = 1/(np.sqrt(2*np.pi)*sig4) * np.exp( -1/(2.*sig4**2)*(x-mu4)**2 )
 # ax.yaxis.set_ticks_position('left')
 
 # plot the functions
-plt.plot(x,y, 'c', label='sig = 1; mu = 0')
-plt.plot(x,z, 'b', label='sig = 2; mu = 1')
-plt.plot(x,w, 'r', label='sig = 3; mu = 2')
-plt.plot(x,v, 'g', label='sig = 4; mu = 3')
+plt.plot(x,y, 'c', label='$\sigma = 1 \quad \: \mu = 0$')
+plt.plot(x,y, 'c', label='$\sigma = 1.5 \; \mu = 0.5$')
+plt.plot(x,z, 'b', label='$\sigma = 2 \quad \: \mu = 1$')
+plt.plot(x,w, 'r', label='$\sigma = 3 \quad \: \mu = 2$')
+plt.plot(x,v, 'g', label='$\sigma = 4 \quad \: \mu = 3$')
 
 plt.legend(loc='upper left')
 
