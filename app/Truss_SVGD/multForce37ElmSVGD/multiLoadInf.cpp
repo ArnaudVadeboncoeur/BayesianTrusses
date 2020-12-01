@@ -30,13 +30,13 @@ int main(){
 
     constexpr unsigned DimK       =  30 ;
     constexpr unsigned DimObs     =  6 ;
-    constexpr unsigned DimPara    =  2 ;
+    constexpr unsigned DimPara    =  1 ;
 
     constexpr unsigned NumTotPara =  37;
     //these worked well --           {12, 13,14, 15, 16, 17  };
     //std::vector<int> paraIndex     { 0, 1, 2,3,4, 5, 6, 7, 8, 9, 10, 11, 12, 13,14, 15, 16, 17 , 18, 19, 20, 21 };
     //std::vector<int> paraIndex     { 12, 13,14, 15, 16, 17 , 18, 19, 20, 21 };
-    std::vector<int> paraIndex     {  13 , 16};
+    std::vector<int> paraIndex     {  13 };
     bool             plot_1_dim    = true;
     std::vector<int> plotParaIndex {0 };
 
@@ -93,9 +93,6 @@ int main(){
     TrussFem.FEMClassReset(false);
 
 //--------------------------------------------------------------------------------------
-//Your gonna have to rewrite
-
-
 
    //Lambda function to compute u(Theta)
     std::function < Eigen::VectorXd ( const Eigen::MatrixXd, int) > uTheta;
@@ -225,10 +222,9 @@ int main(){
 		  k_inv              =     k.inverse();
 		  delLogPVar.row(i) += - ( X_i - priorMeans ).transpose() * PriorCovMatrixInv;
 
-		  LogPVar(i,0)    += -1/2 * std::log( std::pow((2 * M_PI), X.cols()) * PriorCovMatrixInv.inverse().determinant() )
-						   - (1/2 * ( X_i - priorMeans ).transpose() * PriorCovMatrixInv * ( X_i - priorMeans )) (0,0)
-						   - (1/2 * ytL.rows() * std::log( std::pow((2 * M_PI), X.cols()) * cov_n_Inv.inverse().determinant() ));
-		  std::cout << " (1/2 * ( X_i - priorMeans ).transpose() * PriorCovMatrixInv * ( X_i - priorMeans )) " << (1/2 * ( X_i - priorMeans ).transpose() * PriorCovMatrixInv)   << std::endl;
+		  LogPVar(i,0)    += -1./2. * std::log( std::pow((2. * M_PI), X.cols()) * PriorCovMatrixInv.inverse().determinant() )
+						   - (1./2. * ( X_i - priorMeans ).transpose() * PriorCovMatrixInv * ( X_i - priorMeans )) (0,0)
+						   - (1./2. * ytL.rows() * std::log( std::pow((2. * M_PI), X.cols()) * cov_n_Inv.inverse().determinant() ));
 
 		  for(int j = 0 ; j < ytL.rows() ; ++j){
 
@@ -241,8 +237,8 @@ int main(){
 			  }
 			  delLogPVar.row(i) -=  (trueSampleDispC.block(j,0,1, DimObs ) - u.transpose() ) * cov_n_Inv * -1. * du_dTheta;
 
-			  LogPVar.row(i)  -=    -1/2 * (trueSampleDispC.block(j,0,1, DimObs ) - u.transpose() ) * cov_n_Inv *
-					                	   (trueSampleDispC.block(j,0,1, DimObs ) - u.transpose() ).transpose();
+			  LogPVar.row(i)    +=    -1./2. * (trueSampleDispC.block(j,0,1, DimObs ) - u.transpose() ) * cov_n_Inv *
+					                	       (trueSampleDispC.block(j,0,1, DimObs ) - u.transpose() ).transpose();
 			  firstEval = true;
 
 		  }
@@ -252,21 +248,18 @@ int main(){
 	};
 
 
-	Eigen::MatrixXd Xn (1,2); Xn <<  0.03, 0.03;
+	Eigen::MatrixXd Xn (1,1); Xn <<  0.03;
 	Eigen::MatrixXd delLogPMat = std::get<1>( delLogP(Xn) );
-	std::cout << delLogPMat << std::endl;
-	std::cout << std::get<0>( delLogP(Xn) ) << std::endl;
-	Eigen::MatrixXd  diff(1,1) ; diff << 1e-2;
-
-	std::cout << " Numderivative = "<< ( std::get<0>( delLogP(Xn-diff) ) - std::get<0>( delLogP(Xn) ) ) * diff.inverse()
+	std::cout << delLogPMat    << std::endl;
+	Eigen::MatrixXd  diff(1,1) ; diff << 1e-5;
+	std::cout << " Numderivative = "<< ( std::get<0>( delLogP(Xn + diff) ) - std::get<0>( delLogP(Xn - diff) ) ) * 1./2. * diff.inverse()
 				<< std::endl;
 
-//	for (int i = 0; i < 100; ++i){
-//		Xn += delLogP(Xn) * 1e-1;
-//		std::cout << Xn << std::endl;
-//		std::cout << delLogP(Xn) << std::endl;
-//
-//	}
+	using Vect = Eigen::VectorXd;
+	using FUNC = std::function < tupMatMat (const Eigen::MatrixXd) >;
+
+	SVGD< FUNC> svgd(delLogP);
+
 
 return 0;}
 
