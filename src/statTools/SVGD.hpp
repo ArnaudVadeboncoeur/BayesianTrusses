@@ -22,11 +22,13 @@ public:
 
 	//! constructors
 	SVGD( );// { }
-	SVGD( FUNC delLogP );
+	SVGD( FUNC delLogP ) {delLogP_ = delLogP;}
 
-	void InitSamples( const Mat& samples  );
+	void InitSamples( const Mat& samples  ) { Xn_ = samples; return; }
 
 	void gradOptim( int iter, double nesterovMu = 0.9, double nesterovAlpha_ = 1e-3);
+
+	Mat getSamples( ) { return Xn_;}
 
 
 	//! destructor
@@ -58,24 +60,6 @@ private:
 	int iter_;
 
 };
-
-template< typename FUNC >
-SVGD< FUNC >::SVGD(FUNC delLogP) {
-
-	delLogP_ = delLogP;
-}
-
-
-template< typename FUNC >
-void SVGD< FUNC >::InitSamples( const Mat& X ){
-
-	Xn_ = X;
-
-	return;
-}
-
-
-
 
 
 template< typename FUNC >
@@ -167,14 +151,9 @@ void SVGD< FUNC >::gradOptim(  int iter, double nesterovMu, double nesterovAlpha
 		std::cout << "i " << i<< std::endl;
 		grad_ = gradSVGD( Xn_ + nesterovMu_ * vt);
 
-
-		//std::cout << "grad_\n"<<  grad_ << std::endl;
 		std::cout << "grad_.norm()\n"<<  grad_.norm() << std::endl;
 
-
 		vt    = nesterovMu_ * vt + nesterovAlpha_ * grad_ ;
-
-		//std::cout << "vt\n"<<  vt << std::endl;
 
 		Xn_ += vt;
 
@@ -182,6 +161,7 @@ void SVGD< FUNC >::gradOptim(  int iter, double nesterovMu, double nesterovAlpha
 
 	return;
 }
+
 
 #endif // SVGD_HPP_
 
