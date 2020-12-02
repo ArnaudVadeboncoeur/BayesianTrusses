@@ -7,6 +7,7 @@
 
 #include "../../../src/FEMClass.hpp"
 #include "../../../src/statTools/SVGD.hpp"
+#include "../../../src/statTools/MVN.hpp"
 
 #include "trueModelDataGen.hpp"
 #include "../Truss37Elm.hpp"
@@ -30,13 +31,13 @@ int main(){
 
     constexpr unsigned DimK       =  30 ;
     constexpr unsigned DimObs     =  6 ;
-    constexpr unsigned DimPara    =  1 ;
+    constexpr unsigned DimPara    =  2 ;
 
     constexpr unsigned NumTotPara =  37;
     //these worked well --           {12, 13,14, 15, 16, 17  };
     //std::vector<int> paraIndex     { 0, 1, 2,3,4, 5, 6, 7, 8, 9, 10, 11, 12, 13,14, 15, 16, 17 , 18, 19, 20, 21 };
     //std::vector<int> paraIndex     { 12, 13,14, 15, 16, 17 , 18, 19, 20, 21 };
-    std::vector<int> paraIndex     {  13 };
+    std::vector<int> paraIndex     {  13 , 16 };
     bool             plot_1_dim    = true;
     std::vector<int> plotParaIndex {0 };
 
@@ -74,7 +75,7 @@ int main(){
     priorMeans.setConstant(0.06);
 
     Eigen::MatrixXd PriorCovMatrix (DimPara,DimPara); PriorCovMatrix.setZero();
-    Eigen::VectorXd priorStdVec(DimPara); priorStdVec.setConstant(1);
+    Eigen::VectorXd priorStdVec(DimPara); priorStdVec.setConstant(10);
     for(int i = 0; i < priorStdVec.size(); ++i){
 
         PriorCovMatrix(i, i) = pow(priorStdVec[i], 2) ;//* 0.1;
@@ -193,9 +194,11 @@ int main(){
 	       }
 
 	//compute del_xLogP(x)
-    using tupMatMat = std::tuple< Eigen::MatrixXd, Eigen::MatrixXd > ;
 
-	std::function < tupMatMat (const Eigen::MatrixXd) > delLogP;
+    using tupMatMat = std::tuple< Eigen::MatrixXd, Eigen::MatrixXd > ;
+    using FUNC = std::function < tupMatMat (const Eigen::MatrixXd) >;
+
+    FUNC delLogP;
 	delLogP = [&TrussFem,    &KThetaFunc,     &dudThetaFunc,    &uTheta,
 			   paraIndex,    DimK,DimObs,     DimPara,          ObsIndex,
 			   trueForcingC, trueSampleDispC, ytL, L,
@@ -248,17 +251,27 @@ int main(){
 	};
 
 
-	Eigen::MatrixXd Xn (1,1); Xn <<  0.03;
-	Eigen::MatrixXd delLogPMat = std::get<1>( delLogP(Xn) );
-	std::cout << delLogPMat    << std::endl;
-	Eigen::MatrixXd  diff(1,1) ; diff << 1e-5;
-	std::cout << " Numderivative = "<< ( std::get<0>( delLogP(Xn + diff) ) - std::get<0>( delLogP(Xn - diff) ) ) * 1./2. * diff.inverse()
-				<< std::endl;
+//	Eigen::MatrixXd testX (1, DimPara); testX.setConstant(0.03);
+//	Eigen::MatrixXd delLogPMat = std::get<1>( delLogP(testX) );
+//	std::cout << delLogPMat << std::endl;
+//	Eigen::MatrixXd  diff(1,1) ; diff << 1e-5;
+//	std::cout << " Numderivative = "<< ( std::get<0>( delLogP(testX + diff) ) - std::get<0>( delLogP(testX - diff) ) ) * 1./2. * diff.inverse()
+//		      << std::endl;
 
-	using Vect = Eigen::VectorXd;
-	using FUNC = std::function < tupMatMat (const Eigen::MatrixXd) >;
 
-	SVGD< FUNC> svgd(delLogP);
+
+
+	MVN mvn( priorMeans, PriorCovMatrix );
+	Eigen::MatrixXd Xinit = mvn.sampleMVN( 10 );
+	std::cout << "Xinit\n" << Xinit << std::endl;
+
+
+	Eigen::MatrixXd delLogPMat = std::get<1>( delLogP(Xinit) );
+	std::cout << "std::get<1>( delLogP(Xinit) )\n" << std::get<1>( delLogP(Xinit) ) << std::endl;
+
+	SVGD< FUNC > svgd(delLogP);
+	svgd.InitSamples( Xinit );
+	svgd.gradOptim(1000, 1e-4);
 
 
 return 0;}
