@@ -38,8 +38,8 @@ int main(){
     //std::vector<int> paraIndex     { 0, 1, 2,3,4, 5, 6, 7, 8, 9, 10, 11, 12, 13,14, 15, 16, 17 , 18, 19, 20, 21 };
     //std::vector<int> paraIndex     { 12, 13,14, 15, 16, 17 , 18, 19, 20, 21 };
     std::vector<int> paraIndex     {  13 , 16 };
-    bool             plot_1_dim    = true;
-    std::vector<int> plotParaIndex {0 };
+    bool             plot_1_dim    = false;
+    std::vector<int> plotParaIndex {0, 1 };
 
     //Index of dofs observed -- 2 = x and y only
     int Numxyz = 2;//1, 2, 3
@@ -75,7 +75,7 @@ int main(){
     priorMeans.setConstant(0.06);
 
     Eigen::MatrixXd PriorCovMatrix (DimPara,DimPara); PriorCovMatrix.setZero();
-    Eigen::VectorXd priorStdVec(DimPara); priorStdVec.setConstant(10);
+    Eigen::VectorXd priorStdVec(DimPara); priorStdVec.setConstant(1);
     for(int i = 0; i < priorStdVec.size(); ++i){
 
         PriorCovMatrix(i, i) = pow(priorStdVec[i], 2) ;//* 0.1;
@@ -259,22 +259,97 @@ int main(){
 //		      << std::endl;
 
 
-
-
 	MVN mvn( priorMeans, PriorCovMatrix );
 	Eigen::MatrixXd Xinit = mvn.sampleMVN( 10 );
-	std::cout << "Xinit\n" << Xinit << std::endl;
+	//std::cout << "Xinit\n" << Xinit << std::endl;
 
 
 	Eigen::MatrixXd delLogPMat = std::get<1>( delLogP(Xinit) );
-	std::cout << "std::get<1>( delLogP(Xinit) )\n" << std::get<1>( delLogP(Xinit) ) << std::endl;
+	//std::cout << "std::get<1>( delLogP(Xinit) )\n" << std::get<1>( delLogP(Xinit) ) << std::endl;
 
 	SVGD< FUNC > svgd(delLogP);
 	svgd.InitSamples( Xinit );
-	svgd.gradOptim(1000, 1e-4);
+	svgd.gradOptim(10, 1e-3);
+	Mat X = svgd.getSamples();
+
+	std::ofstream myFile;
+	myFile.open("results.dat", std::ios::trunc);
+//	Eigen::IOFormat spaceSep(
+//			int _precision=Eigen::StreamPrecision,
+//			int _flags=0,
+//			const std::string &_coeffSeparator=" ",
+//			const std::string &_rowSeparator="\n",
+//			const std::string &_rowPrefix="",
+//			const std::string &_rowSuffix="",
+//			const std::string &_matPrefix="",
+//			const std::string &_matSuffix="");
+
+	Eigen::IOFormat CommaInitFmt(Eigen::StreamPrecision,
+							     Eigen::DontAlignCols,
+								 " ", "\n",
+								 "", "", "", "");
+	myFile << X.format(CommaInitFmt) ;
 
 
-return 0;}
+
+
+
+
+//Eval True Pdf to plot ---------------------------------------------------------
+
+	std::cout << "Computing scatter points true pdf " <<
+			"\n-----------------------------------------------" << '\n';
+
+    Eigen::VectorXd xPost( DimPara ); xPost.setZero();
+	double Vol = 0;
+
+	std::ofstream myEvalFile;
+	myEvalFile.open("pdfResults.dat");
+
+	double a = 0.01;//-0.08;
+	double b = 0.1;
+
+	double c = 0.01;
+	double d = 0.1;
+
+	int samplesX = 1 * 1e2;
+
+	int samplesY = 1 * 1e2;
+	if (plot_1_dim) {samplesY = 1;}
+
+
+	double dx = (double) (b - a) / samplesX;
+	double dy = (double) (d - c) / samplesY;
+	if (plot_1_dim) {dx = 1;}
+
+	double bottomLim = -1e-3;
+
+	Eigen::MatrixXd evalX( samplesX * samplesY, plotParaIndex.size() + 1 );
+	int ctr = 0;
+	for(int i = 0; i < samplesX ; ++i){
+		for(int j = 0; j < samplesY; ++j){
+
+			evalX(ctr, 0) = a + i * dx;
+			if (!plot_1_dim) { evalX(ctr, 1) = b + j * dy; }
+			ctr ++;
+
+		}
+	}
+	std::cout << "here" << std::endl;
+
+	Eigen::MatrixXd delLogPEvals = std::get<0>(  delLogP(evalX) );
+
+	std::cout << "here2" << std::endl;
+	for(int i = 0; i < evalX.rows(); ++i){
+		myEvalFile << evalX(i, 0) << " " << evalX(i, 1) << delLogPEvals(i, 0) << "\n";
+	}
+
+
+
+   return 0;
+
+}
+
 
 /*
 
