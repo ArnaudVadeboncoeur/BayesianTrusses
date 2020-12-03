@@ -5,6 +5,9 @@ import pandas as pd
 from random import seed, randint
 import time
 
+plt.rc('text', usetex=True)
+plt.rc('font', **{'family':'serif','serif':['Computer Modern Roman']})
+
 data = []
 
 def is_float(string):
@@ -68,4 +71,35 @@ if(dimPlot == -2):
         plt.savefig("A vs Disp.png")
         plt.show()
         more = input("continue? y/n: ")
+        
+if(dimPlot == -3):
+    
+    
+# =============================================================================
+# 	df = pd.DataFrame(data )
+# 	g = sns.PairGrid( data = df )
+# 	g.map_upper(sns.kdeplot)
+# 	g.map_lower(sns.kdeplot, fill=True)
+# 	g.map_diag(sns.kdeplot, kde=True)
+# =============================================================================
+	
+	# Pair-wise Scatter Plots
+
+# =============================================================================
+#     pp = sns.pairplot(data=df, height=1.8, aspect=1.8,
+#                       plot_kws=dict(edgecolor="k", linewidth=0.5),
+#                       diag_kind="kde", diag_kws=dict(shade=True))
+#     
+#     fig = pp.fig 
+#     fig.subplots_adjust(top=0.93, wspace=0.3)
+#     t = fig.suptitle(r'MultiDim Visualisation', fontsize=14)
+# 
+# =============================================================================
+    sns.pairplot(data=df)
+    	
+    	
+	
+	
+	
+	
 

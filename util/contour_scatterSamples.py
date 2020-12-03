@@ -18,12 +18,20 @@ def is_float(string):
 		return float(string)
 	except ValueError:
 		return False
-
-with open(myFile1,'r') as f:
-	reader = f.readlines()
-	for line  in reader:
-		split = line.rstrip().split(" ")
-		data1.append([float(line) if is_float(line) else line  for line in split ])
+		
+		
+surface = False
+try:
+	with open(myFile1,'r') as f:
+		reader = f.readlines()
+		for line  in reader:
+			split = line.rstrip().split(" ")
+			data1.append([float(line) if is_float(line) else line  for line in split ])
+	data1 = np.array(data1, dtype = float)
+	surface = True
+except:
+    data1 = [[0],[0],[0]]
+    
 OptLine = False
 try:
     
@@ -38,21 +46,23 @@ except:
     data2 = [[0],[0]]
 
 #print(data)
-data1 = np.array(data1, dtype = float)
+if(surface == True):
+	data1 = np.array(data1, dtype = float)
 
-x = data1[:, 0]
-y = data1[:, 1]
-z = data1[:, 2]
-z = np.where(z < 1e-4 , 1e-4, z) 
+	x = data1[:, 0]
+	y = data1[:, 1]
+	z = data1[:, 2]
+	z = np.where(z < 1e-4 , 1e-4, z) 
 
-N = 100 #number of points for plotting/interpolation
+	N = 100 #number of points for plotting/interpolation
 
-xi = np.linspace(x.min(), x.max(), N)
-yi = np.linspace(y.min(), y.max(), N)
-zi = scipy.interpolate.griddata((x, y), z, (xi[None,:], yi[:,None]), method='cubic')
+	xi = np.linspace(x.min(), x.max(), N)
+	yi = np.linspace(y.min(), y.max(), N)
+	zi = scipy.interpolate.griddata((x, y), z, (xi[None,:], yi[:,None]), method='cubic')
 
-#fig = plt.figure()
-plt.contourf(xi, yi, zi, 30)
+	#fig = plt.figure()
+	plt.contourf(xi, yi, zi, 30)
+
 if(OptLine == True):
     xo = data2[:, 0]
     yo = data2[:, 1]

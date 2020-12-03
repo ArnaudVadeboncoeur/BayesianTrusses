@@ -100,8 +100,9 @@ DataCont trueSampleGen( Eigen::VectorXi ObsIndex ){
     FEMClass trueTrussFem(false, TrussDef );
 
     //Can measure ex: +- 1cm to 95% confidence
-    // 0.002m = 2\sigma; \sigma = 0.001m
+    // 0.001m = 2\sigma; \sigma = 0.0005m
     double sigma_n = 0.001;
+    std::cout << "sigma noise --> +-" << 2 * sigma_n << std::endl;
     std::normal_distribution<double> normal( 0, sigma_n );
     std::random_device rd;
     std::mt19937 engine( rd() );
@@ -113,7 +114,7 @@ DataCont trueSampleGen( Eigen::VectorXi ObsIndex ){
     	trueTrussFem.FEMClassReset(false);
         trueTrussFem.modForce( forceContainer[f] );
 
-        double A1 = 0.04 ;
+        double A1 = 0.005 ;
         trueTrussFem.modA(13, A1);
 
         trueTrussFem.assembleS( );
@@ -144,7 +145,7 @@ DataCont trueSampleGen( Eigen::VectorXi ObsIndex ){
         //===new code
 
     }
-
+    std::cout << "ytl : \n" << yToLoadIndexes << std::endl;
     trueSamplesTupleContainer = std::make_tuple( ObsDisp, yToLoadIndexes , forceContainer, sigma_n );
 
     return trueSamplesTupleContainer;

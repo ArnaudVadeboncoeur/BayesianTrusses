@@ -31,7 +31,7 @@ TupleTrussDef InitialTrussAssignment(){
     Eigen::MatrixXi memberData  (numberElms, 2);
     Eigen::MatrixXd force       (numberNodes * 3, 1);
     //Areas
-    A.setConstant(0.06); //m^2
+    A.setConstant(0.01); //m^2 --> l = sqrt(A)
 
     //Modulus of Elasticity
     E <<    2e8; // N/m^2

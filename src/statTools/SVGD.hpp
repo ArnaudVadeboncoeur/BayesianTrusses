@@ -14,7 +14,6 @@
 
 using Mat       = Eigen::MatrixXd;
 using Vect      = Eigen::VectorXd;
-using tupMatMat = std::tuple< Eigen::MatrixXd, Eigen::MatrixXd > ;
 
 template< typename FUNC >
 class SVGD{
@@ -26,10 +25,11 @@ public:
 
 	void InitSamples( const Mat& samples  ) { Xn_ = samples; return; }
 
-	void gradOptim( int iter, double nesterovMu = 0.9, double nesterovAlpha_ = 1e-3);
+	void gradOptim( int iter,  double nesterovAlpha = 1e-3, double nesterovMu = 0.9);
 
 	Mat getSamples( ) { return Xn_;}
 
+	Mat gradNormHistory;
 
 	//! destructor
 	~SVGD( ) { }
@@ -43,7 +43,6 @@ private:
 
 	FUNC  delLogP_;
 
-	tupMatMat returnDelLogPFUNC_;
 	Mat   delLogPMat_;
 	Mat   Xn_;
 	Mat   grad_;
@@ -91,8 +90,16 @@ Mat SVGD< FUNC >::kernMat( const Mat& X ){
 
 	h_ = median * median / std::log(X.rows());
 
-	std::cout << "h_\n" << h_ << std::endl;
-	kernOfX = ( 1./ h_ *  kernOfX.array() ).exp() ;
+	//std::cout << "h_\n" << h_ << std::endl;
+	kernOfX = (- 1./ h_ *  kernOfX.array() *  kernOfX.array() ).matrix();
+	//std::cout << "kernOfX\n"<<  kernOfX << std::endl;
+	kernOfX = kernOfX.array().exp().matrix() ;
+
+//	std::cout << "median\n"<<  median << std::endl;
+//	std::cout << "h_\n"<<  h_ << std::endl;
+//	std::cout << "kernOfX.nomr()\n"<<  kernOfX.norm() << std::endl;
+//	std::cout << "X.nomr()\n"<<  X.norm() << std::endl;
+
 
 
 	return kernOfX;
@@ -101,8 +108,8 @@ Mat SVGD< FUNC >::kernMat( const Mat& X ){
 template< typename FUNC >
 Mat SVGD< FUNC >::sumDerKern( const Mat& X, const Mat& kernX ){
 
-	Mat avgDerkernOfX(X.rows(), X.cols());
-	avgDerkernOfX.setZero();
+	Mat sumDerKernMat(X.rows(), X.cols());
+	sumDerKernMat.setZero();
 	Eigen::MatrixXd matx_iMinX(X.rows(), X.cols());
 
 	for(int i = 0; i < X.rows(); ++i){
@@ -111,13 +118,13 @@ Mat SVGD< FUNC >::sumDerKern( const Mat& X, const Mat& kernX ){
 
 		for(int j = 0; j< kernX.rows(); ++j){
 
-			avgDerkernOfX.row(j) += matx_iMinX.row(j) * kernX.row(i)[j] ;
+			sumDerKernMat.row(j) += matx_iMinX.row(j) * kernX.row(i)[j] ;
 		}
 
 	}
-	avgDerkernOfX = avgDerkernOfX * (double) 1./ X.rows();
-
-	return avgDerkernOfX ;
+	//sumDerKernMat = sumDerKernMat * (double) 1./ X.rows(); dont avg twice!
+	sumDerKernMat = -2. / h_ * sumDerKernMat;
+	return sumDerKernMat ;
 }
 
 template< typename FUNC >
@@ -125,8 +132,7 @@ Mat SVGD< FUNC >::gradSVGD( const Mat& X ){
 
 	Mat gradient (X.rows(), X.cols() );
 
-	returnDelLogPFUNC_ = delLogP_( X );
-	delLogPMat_        = std::get<1>( returnDelLogPFUNC_ ) ;
+	delLogPMat_ = delLogP_( X );
 
 	kernMat_        = kernMat( X );
 
@@ -134,28 +140,46 @@ Mat SVGD< FUNC >::gradSVGD( const Mat& X ){
 
 	gradient = (double) 1. / X.rows() * ( kernMat_ * delLogPMat_ + sumDerKernMat_ );
 
+//	std::cout << "\n\n\n\n"<<  std::endl;
+//	std::cout << "kernMat_\n"<<  kernMat_ << std::endl;
+//	std::cout << "delLogPMat_\n"<<  delLogPMat_ << std::endl;
+//	std::cout << "sumDerKernMat_\n"<<  sumDerKernMat_ << std::endl;
+//	std::cout << "gradient\n"<<  gradient << std::endl;
+//	std::cout << "Xn_\n"<<  Xn_ << std::endl;
+//	std::cout << "\n\n\n\n"<<  std::endl;
+
+
 	return gradient;
 }
 
 
 
 template< typename FUNC >
-void SVGD< FUNC >::gradOptim(  int iter, double nesterovMu, double nesterovAlpha_ ) {
+void SVGD< FUNC >::gradOptim(  int iter,  double nesterovAlpha, double nesterovMu ){
 
-	nesterovMu_ = nesterovMu;
-	iter_ 		= iter;
+	nesterovAlpha_ = nesterovAlpha;
+	nesterovMu_    = nesterovMu;
+	iter_ 		   = iter;
+
+	gradNormHistory.resize(iter, 1);
 
 	Mat vt (Xn_.rows(), Xn_.cols() ); vt.setZero();
 
 	for(int i = 0; i < iter; ++i){
-		std::cout << "i " << i<< std::endl;
+		std::cout << "iteration: " << i<< std::endl;
+
 		grad_ = gradSVGD( Xn_ + nesterovMu_ * vt);
 
-		std::cout << "grad_.norm()\n"<<  grad_.norm() << std::endl;
+		gradNormHistory(i, 0) = grad_.norm();
+
+		std::cout << "gradNormHistory(i, 0)\n"<<  gradNormHistory(i, 0) << std::endl;
 
 		vt    = nesterovMu_ * vt + nesterovAlpha_ * grad_ ;
 
+		//std::cout << "vt\n"<< vt << std::endl;
+
 		Xn_ += vt;
+
 
 	}
 
