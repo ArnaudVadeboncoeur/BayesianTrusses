@@ -4,6 +4,8 @@ import seaborn as sns
 import pandas as pd
 from random import seed, randint
 import time
+import corner
+import pygtc
 
 plt.rc('text', usetex=True)
 plt.rc('font', **{'family':'serif','serif':['Computer Modern Roman']})
@@ -73,7 +75,25 @@ if(dimPlot == -2):
         more = input("continue? y/n: ")
         
 if(dimPlot == -3):
-    
+    #df = pd.DataFrame(data )
+    #grr = pd.plotting.scatter_matrix(df,marker='o',hist_kwds={'bins':20})
+    #z = np.where(z < 1e-4 , 1e-4, z) 
+# =============================================================================
+#     for i in range(0, data.shape[1]):
+#         data[:,i] = np.where( data[:,i] > np.mean(data[:,i]) + 2 * np.std(data[:,i]), None, data[:,i]) 
+#         data[:,i] = np.where( data[:,i] < np.mean(data[:,i]) - 2 * np.std(data[:,i]), None, data[:,i])
+# =============================================================================
+# =============================================================================
+#     for i in range(0, data.shape[1]):
+#         #new_arr = np.delete(arr, np.where(arr == 2))
+#         data[:, i] = np.delete( data[:, i], np.where( data[:,i] > np.mean(data[:,i]) + 2 * np.std(data[:,i]) ) )
+#         data[:, i] = np.delete( data[:, i], np.where( data[:,i] < np.mean(data[:,i]) - 2 * np.std(data[:,i]) ) )
+# =============================================================================
+
+    #data[213, 1] = np.mean(data[:, 1])
+    #figure = corner.corner(data)
+    GTC = pygtc.plotGTC(chains=[data])
+    plt.savefig("plot.pdf")
     
 # =============================================================================
 # 	df = pd.DataFrame(data )
@@ -95,7 +115,7 @@ if(dimPlot == -3):
 #     t = fig.suptitle(r'MultiDim Visualisation', fontsize=14)
 # 
 # =============================================================================
-    sns.pairplot(data=df)
+    #sns.pairplot(data=df)
     	
     	
 	
