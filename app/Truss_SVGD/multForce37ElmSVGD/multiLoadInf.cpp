@@ -31,13 +31,13 @@ int main(){
 
     constexpr unsigned DimK       =  30 ;
     constexpr unsigned DimObs     =  20 ;
-    constexpr unsigned DimPara    =  6 ;
+    constexpr unsigned DimPara    =  12 ;
 
     constexpr unsigned NumTotPara =  37;
     //these worked well --           {12, 13,14, 15, 16, 17  };
-    //std::vector<int> paraIndex     { 0, 1, 2,3,4, 5, 6, 7, 8, 9, 10, 11, 12, 13,14, 15, 16, 17 , 18, 19, 20, 21 };
+    std::vector<int> paraIndex     { 0, 1, 2,3,4, 5, 6, 7, 8, 9, 10, 11 };
     //std::vector<int> paraIndex     { 12, 13,14, 15, 16, 17 , 18, 19, 20, 21 };
-    std::vector<int> paraIndex     { 2,3, 13 , 16 ,15, 17};
+    //std::vector<int> paraIndex     { 2,3, 13 , 16 ,15, 17};
     bool             plot_1_dim    = false;
     std::vector<int> plotParaIndex {2, 3};
 
@@ -75,7 +75,8 @@ int main(){
     priorMeans.setConstant(0.01);
 
     Eigen::MatrixXd PriorCovMatrix (DimPara,DimPara); PriorCovMatrix.setZero();
-    double sigma_p = 0.0025;
+    //double sigma_p = 0.0025;
+    double sigma_p = 0.001;
     Eigen::VectorXd priorStdVec(DimPara); priorStdVec.setConstant( sigma_p );
     for(int i = 0; i < priorStdVec.size(); ++i){
 
@@ -248,8 +249,8 @@ int main(){
 			  firstEval = true;
 			  if(X_i.minCoeff() <=0 ){
 
-				  std::cout << "X_i\n" << X_i << std::endl;
-				  std::cout << "delLogPVar.row(i)\n" << delLogPVar.row(i) << std::endl;
+				  std::cout << "\n*Xval<0*\n" << std::endl;
+				  //std::cout << "delLogPVar.row(i)\n" << delLogPVar.row(i) << std::endl;
 			  }
 		  }
 		}
@@ -289,7 +290,7 @@ int main(){
 								 " ", "\n",
 								 "", "", "", "");
 
-	MVN mvn( priorMeans, PriorCovMatrix  );
+	MVN mvn( priorMeans , PriorCovMatrix  );
 	Eigen::MatrixXd Xinit = mvn.sampleMVN( 1000 );
 
 	std::ofstream myFilePriorSamples;
@@ -318,6 +319,12 @@ int main(){
 
 	gradHist << svgd.gradNormHistory.format(CommaInitFmt) ;
 	gradHist.close();
+
+	std::ofstream pertHist;
+	pertHist.open("pertist.dat", std::ios::trunc);
+
+	pertHist << svgd.pertNormHistory.format(CommaInitFmt) ;
+	pertHist.close();
 
 
 
