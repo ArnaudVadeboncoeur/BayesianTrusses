@@ -29,7 +29,10 @@ public:
 
 	Mat getSamples( ) { return Xn_;}
 
+	//creat matrix of hard limits or constraints for SVGD
+
 	Mat gradNormHistory;
+	Mat pertNormHistory;
 
 	//! destructor
 	~SVGD( ) { }
@@ -162,6 +165,7 @@ void SVGD< FUNC >::gradOptim(  int iter,  double nesterovAlpha, double nesterovM
 	iter_ 		   = iter;
 
 	gradNormHistory.resize(iter, 1);
+	pertNormHistory.resize(iter, 1);
 
 	Mat vt (Xn_.rows(), Xn_.cols() ); vt.setZero();
 
@@ -171,6 +175,7 @@ void SVGD< FUNC >::gradOptim(  int iter,  double nesterovAlpha, double nesterovM
 		grad_ = gradSVGD( Xn_ + nesterovMu_ * vt);
 
 		gradNormHistory(i, 0) = grad_.norm();
+		pertNormHistory(i, 0) = grad_.norm();
 
 		std::cout << "gradNormHistory(i, 0)\n"<<  gradNormHistory(i, 0) << std::endl;
 
@@ -179,6 +184,12 @@ void SVGD< FUNC >::gradOptim(  int iter,  double nesterovAlpha, double nesterovM
 		//std::cout << "vt\n"<< vt << std::endl;
 
 		Xn_ += vt;
+
+		//Xn_ mus be > 0;
+		//std::cout << "Before Xn_\n" << Xn_ << std::endl;
+		Xn_ = Xn_.unaryExpr([](double v) { return v > 0? v : 1e-6; });
+		//std::cout << "After Xn_\n" << Xn_ << std::endl;
+
 
 
 	}
