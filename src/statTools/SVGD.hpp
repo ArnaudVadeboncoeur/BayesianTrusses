@@ -172,22 +172,26 @@ void SVGD< FUNC >::gradOptim(  int iter,  double nesterovAlpha, double nesterovM
 	for(int i = 0; i < iter; ++i){
 		std::cout << "iteration: " << i<< std::endl;
 
-		grad_ = gradSVGD( Xn_ + nesterovMu_ * vt);
+		grad_ = gradSVGD( Xn_ + nesterovMu_ * vt );
 
 		gradNormHistory(i, 0) = grad_.norm();
-		pertNormHistory(i, 0) = grad_.norm();
 
 		std::cout << "gradNormHistory(i, 0)\n"<<  gradNormHistory(i, 0) << std::endl;
 
 		vt    = nesterovMu_ * vt + nesterovAlpha_ * grad_ ;
 
+
+		pertNormHistory(i, 0) = vt.norm();
+		std::cout << "pertNormHistory(i, 0)\n"<<  pertNormHistory(i, 0) << std::endl;
+
+		std::cout << "avg pertNormHistory(i, 0)\n"<< ( vt.colwise().norm() ).sum() * (double) 1./vt.rows() << std::endl;
 		//std::cout << "vt\n"<< vt << std::endl;
 
 		Xn_ += vt;
 
 		//Xn_ mus be > 0;
 		//std::cout << "Before Xn_\n" << Xn_ << std::endl;
-		Xn_ = Xn_.unaryExpr([](double v) { return v > 0? v : 1e-6; });
+		Xn_ = Xn_.unaryExpr([](double v) { return v > 0 ? v : 1e-6; });
 		//std::cout << "After Xn_\n" << Xn_ << std::endl;
 
 
