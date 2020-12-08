@@ -185,15 +185,14 @@ void SVGD< FUNC >::gradOptim(  int iter,  double nesterovAlpha, double nesterovM
 		std::cout << "pertNormHistory(i, 0)\n"<<  pertNormHistory(i, 0) << std::endl;
 
 		std::cout << "avg pertNormHistory(i, 0)\n"<< ( vt.colwise().norm() ).sum() * (double) 1./vt.rows() << std::endl;
-		//std::cout << "vt\n"<< vt << std::endl;
 
 		Xn_ += vt;
 
-		//Xn_ mus be > 0;
-		//std::cout << "Before Xn_\n" << Xn_ << std::endl;
 		Xn_ = Xn_.unaryExpr([](double v) { return v > 0 ? v : 1e-6; });
-		//std::cout << "After Xn_\n" << Xn_ << std::endl;
 
+		if(pertNormHistory(i, 0) > 0.5){
+			std::cout << "\n\n\n pertb > 0.5\n" << Xn_ << pertNormHistory(i, 0) << std::endl;
+		}
 
 
 	}
