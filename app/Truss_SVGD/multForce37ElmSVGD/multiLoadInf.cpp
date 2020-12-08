@@ -31,15 +31,16 @@ int main(){
 
     constexpr unsigned DimK       =  30 ;
     constexpr unsigned DimObs     =  20 ;
-    constexpr unsigned DimPara    =  12 ;
+    constexpr unsigned DimPara    =  10 ;
 
     constexpr unsigned NumTotPara =  37;
     //these worked well --           {12, 13,14, 15, 16, 17  };
-    std::vector<int> paraIndex     { 0, 1, 2,3,4, 5, 6, 7, 8, 9, 10, 11 };
-    //std::vector<int> paraIndex     { 12, 13,14, 15, 16, 17 , 18, 19, 20, 21 };
-    //std::vector<int> paraIndex     { 2,3, 13 , 16 ,15, 17};
+    //std::vector<int> paraIndex     { 0, 1, 2,3,4, 5};//, 7, 8, 9, 10, 11 };
+    std::vector<int> paraIndex     { 12, 13,14, 15, 16, 17, 18, 19, 20, 21};// DimParam = 10
+    //std::vector<int> paraIndex     { 13 , 16 };
+    bool plot                      = false;
     bool             plot_1_dim    = false;
-    std::vector<int> plotParaIndex {2, 3};
+    std::vector<int> plotParaIndex {0, 1};
 
     //Index of dofs observed -- 2 = x and y only
     int Numxyz = 2;//1, 2, 3
@@ -72,11 +73,12 @@ int main(){
 //---------------------------------------Prior----------------------------------
 
     Eigen::VectorXd priorMeans(DimPara);
-    priorMeans.setConstant(0.01);
+    priorMeans.setConstant(0.015);
 
     Eigen::MatrixXd PriorCovMatrix (DimPara,DimPara); PriorCovMatrix.setZero();
     //double sigma_p = 0.0025;
-    double sigma_p = 0.001;
+    double sigma_p = 0.0025;
+    //97.5% += 3 * sigma_p
     Eigen::VectorXd priorStdVec(DimPara); priorStdVec.setConstant( sigma_p );
     for(int i = 0; i < priorStdVec.size(); ++i){
 
@@ -249,7 +251,7 @@ int main(){
 			  firstEval = true;
 			  if(X_i.minCoeff() <=0 ){
 
-				  std::cout << "\n*Xval<0*\n" << std::endl;
+				  std::cout << "\n*Xval<0*\n" << X_i << std::endl;
 				  //std::cout << "delLogPVar.row(i)\n" << delLogPVar.row(i) << std::endl;
 			  }
 		  }
@@ -291,7 +293,7 @@ int main(){
 								 "", "", "", "");
 
 	MVN mvn( priorMeans , PriorCovMatrix  );
-	Eigen::MatrixXd Xinit = mvn.sampleMVN( 1000 );
+	Eigen::MatrixXd Xinit = mvn.sampleMVN( 100 );
 
 	std::ofstream myFilePriorSamples;
 	myFilePriorSamples.open("priorSamples.dat", std::ios::trunc);
@@ -302,8 +304,9 @@ int main(){
 
 	SVGD< FUNC > svgd(delLogPSVGD);
 	svgd.InitSamples( Xinit );
-	//svgd.gradOptim(100, 1e-7);
-	svgd.gradOptim(300, 1e-7);
+	//svgd.gradOptim(75, 5*1e-8);
+	//svgd.gradOptim(300, 1e-8);
+	svgd.gradOptim(1000, 1 * 1e-12, 0.9);
 	Mat X = svgd.getSamples();
 
 	std::ofstream myFilePostSamples;
@@ -330,7 +333,7 @@ int main(){
 
 
 //Eval True Pdf to plot ---------------------------------------------------------
-	bool plot = true;
+	//bool plot = true;
 	if( ! plot ){ return 0;}
 
 
@@ -342,11 +345,11 @@ int main(){
 	std::ofstream myEvalFile;
 	myEvalFile.open("pdfResults.dat");
 
-	double a = 0.0001;//-0.08;
-	double b = 0.02;
+	double a = 0.0025;//-0.08;
+	double b = 0.01;
 
-	double c = 0.0001;
-	double d = 0.02;
+	double c = 0.0075;
+	double d = 0.015;
 
 	int samplesX = 1 * 1e2;
 

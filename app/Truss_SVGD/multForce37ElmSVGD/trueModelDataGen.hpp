@@ -38,7 +38,7 @@ DataCont trueSampleGen( Eigen::VectorXi ObsIndex ){
     //myTrueFile.open("trueResults.dat", std::ios::trunc);
 
     int numLoadingCases = 5;
-    std::vector <int> numSamples {1,1, 1, 1, 1};
+    std::vector <int> numSamples {1,0, 0, 0, 0};
 
     int numObsVects = std::accumulate(numSamples.begin(), numSamples.end(), 0);
     std::cout << "numObsVects \n" << numObsVects << std::endl;
@@ -101,7 +101,8 @@ DataCont trueSampleGen( Eigen::VectorXi ObsIndex ){
 
     //Can measure ex: +- 1cm to 95% confidence
     // 0.001m = 2\sigma; \sigma = 0.0005m
-    double sigma_n = 0.001;
+    double sigma_n = 0.0005;
+    //95% +- val = 2 * sigma_n
     std::cout << "sigma noise --> +-" << 2 * sigma_n << std::endl;
     std::normal_distribution<double> normal( 0, sigma_n );
     std::random_device rd;
