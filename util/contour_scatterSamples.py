@@ -7,6 +7,9 @@ from random import seed, randint
 import time
 import scipy.interpolate
 
+plt.rc('text', usetex=True)
+plt.rc('font', **{'family':'serif','serif':['Computer Modern Roman']})
+
 data1 = []
 myFile1 = input("input file Path Surface: ")
 
@@ -69,8 +72,8 @@ if(OptLine == True):
     #plt.plot(xo, yo, c='r')
     plt.scatter(xo[1:], yo[1:], c='r', s=5)
 
-plt.xlabel("Parameter-1")
-plt.ylabel("Parameter-2")
+plt.xlabel(r"$\theta_1$")
+plt.ylabel(r"$\theta_2$")
 plt.gca().set_aspect('equal', adjustable='box')
 plt.show()
 	

@@ -38,7 +38,7 @@ for i in range( 0 , columns + 1 ) :
     print("dim {0} mean = {1}".format(i, np.mean( data[:,i] ) ) )
 
 dimPlot = int( input("input Dim to plot: ") )
-while( dimPlot >= 0 ):	
+while( dimPlot >= 0 ):
 
     #plt.hist(data[:,0], bins=50, range=None, density=True, weights=None,
     #cumulative=False, bottom=None, histtype='step', align='mid',
@@ -49,8 +49,8 @@ while( dimPlot >= 0 ):
     #			 fit=None, hist_kws=None, kde_kws=None, rug_kws=None,
     #			 fit_kws=None, color=None, vertical=False, norm_hist=True,
     #			 axlabel=None, label=None, ax=None)
-    
-    histogram = sns.distplot(data[:,dimPlot])	
+
+    histogram = sns.distplot(data[:,dimPlot])
     #plt.title('A vs Disp')
     plt.savefig('AvsDof.png')
     plt.show()
@@ -73,14 +73,14 @@ if(dimPlot == -2):
         plt.savefig("A vs Disp.png")
         plt.show()
         more = input("continue? y/n: ")
-        
+
 if(dimPlot == -3):
     #df = pd.DataFrame(data )
     #grr = pd.plotting.scatter_matrix(df,marker='o',hist_kwds={'bins':20})
-    #z = np.where(z < 1e-4 , 1e-4, z) 
+    #z = np.where(z < 1e-4 , 1e-4, z)
 # =============================================================================
 #     for i in range(0, data.shape[1]):
-#         data[:,i] = np.where( data[:,i] > np.mean(data[:,i]) + 2 * np.std(data[:,i]), None, data[:,i]) 
+#         data[:,i] = np.where( data[:,i] > np.mean(data[:,i]) + 2 * np.std(data[:,i]), None, data[:,i])
 #         data[:,i] = np.where( data[:,i] < np.mean(data[:,i]) - 2 * np.std(data[:,i]), None, data[:,i])
 # =============================================================================
 # =============================================================================
@@ -91,10 +91,10 @@ if(dimPlot == -3):
 # =============================================================================
 
     #data[213, 1] = np.mean(data[:, 1])
-    #figure = corner.corner(data)
-    GTC = pygtc.plotGTC(chains=[data])
-    plt.savefig("plot.pdf")
-    
+    figure = corner.corner(data)
+    #GTC = pygtc.plotGTC(chains=[data])
+    #plt.savefig("plot.pdf")
+
 # =============================================================================
 # 	df = pd.DataFrame(data )
 # 	g = sns.PairGrid( data = df )
@@ -102,24 +102,24 @@ if(dimPlot == -3):
 # 	g.map_lower(sns.kdeplot, fill=True)
 # 	g.map_diag(sns.kdeplot, kde=True)
 # =============================================================================
-	
+
 	# Pair-wise Scatter Plots
 
 # =============================================================================
 #     pp = sns.pairplot(data=df, height=1.8, aspect=1.8,
 #                       plot_kws=dict(edgecolor="k", linewidth=0.5),
 #                       diag_kind="kde", diag_kws=dict(shade=True))
-#     
-#     fig = pp.fig 
+#
+#     fig = pp.fig
 #     fig.subplots_adjust(top=0.93, wspace=0.3)
 #     t = fig.suptitle(r'MultiDim Visualisation', fontsize=14)
-# 
+#
 # =============================================================================
     #sns.pairplot(data=df)
-    	
-    	
-	
-	
-	
-	
+
+
+
+
+
+
 
