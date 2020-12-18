@@ -62,8 +62,11 @@ DataCont trueSampleGen( Eigen::VectorXi ObsIndex ){
 
     Eigen::MatrixXd forcing2 ( 14 * 3 , 1 ) ;
     forcing2.setZero();
-    forcing2( 2 * 3 + 0 , 0 ) = -2*Kn;
-    forcing2( 9 * 3 + 0 , 0 ) = -2*Kn;
+    forcing2( 12 * 3 + 1 , 0 ) = -2*Kn;
+    forcing2( 5 * 3 + 1 , 0 ) = -1*Kn;
+    forcing2( 3 * 3 + 1 , 0 ) = -2*Kn;
+	forcing2( 10 * 3 + 1 , 0 ) = -1*Kn;
+
 
     forceContainer[1] = forcing2;
 

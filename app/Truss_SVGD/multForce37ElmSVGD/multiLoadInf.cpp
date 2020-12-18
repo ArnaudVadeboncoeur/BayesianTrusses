@@ -37,6 +37,7 @@ int main(){
     //these worked well --           {12, 13,14, 15, 16, 17  };
     //std::vector<int> paraIndex     { 0, 1, 2,3,4, 5};//, 7, 8, 9, 10, 11 };
     std::vector<int> paraIndex     { 12, 13,14, 15, 16, 17, 18, 19, 20, 21};// DimParam = 10
+    //std::vector<int> paraIndex     { 12, 13,14, 15, 16};//, 17, 18, 19, 20, 21};// DimParam = 6
     //std::vector<int> paraIndex     { 13 , 16 };
     bool plot                      = false;
     bool             plot_1_dim    = false;
@@ -293,7 +294,7 @@ int main(){
 								 "", "", "", "");
 
 	MVN mvn( priorMeans , PriorCovMatrix  );
-	Eigen::MatrixXd Xinit = mvn.sampleMVN( 100 );
+	Eigen::MatrixXd Xinit = mvn.sampleMVN( 500 );
 
 	std::ofstream myFilePriorSamples;
 	myFilePriorSamples.open("priorSamples.dat", std::ios::trunc);
@@ -305,8 +306,8 @@ int main(){
 	SVGD< FUNC > svgd(delLogPSVGD);
 	svgd.InitSamples( Xinit );
 	//svgd.gradOptim(75, 5*1e-8);
-	//svgd.gradOptim(300, 1e-8);
-	svgd.gradOptim(1000, 1 * 1e-12, 0.9);
+	svgd.gradOptim(100, 1e-8, 0.90);
+	//svgd.gradOptim(500, 1e-10, 0.95);
 	Mat X = svgd.getSamples();
 
 	std::ofstream myFilePostSamples;
