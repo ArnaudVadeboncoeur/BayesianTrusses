@@ -5,7 +5,7 @@ import pandas as pd
 from random import seed, randint
 import time
 import corner
-import pygtc
+#import pygtc
 
 plt.rc('text', usetex=True)
 plt.rc('font', **{'family':'serif','serif':['Computer Modern Roman']})
@@ -75,7 +75,7 @@ if(dimPlot == -2):
         more = input("continue? y/n: ")
 
 if(dimPlot == -3):
-    #df = pd.DataFrame(data )
+    df = pd.DataFrame(data )
     #grr = pd.plotting.scatter_matrix(df,marker='o',hist_kwds={'bins':20})
     #z = np.where(z < 1e-4 , 1e-4, z)
 # =============================================================================
@@ -91,7 +91,7 @@ if(dimPlot == -3):
 # =============================================================================
 
     #data[213, 1] = np.mean(data[:, 1])
-    figure = corner.corner(data)
+    #figure = corner.corner(data)
     #GTC = pygtc.plotGTC(chains=[data])
     #plt.savefig("plot.pdf")
 
@@ -116,6 +116,9 @@ if(dimPlot == -3):
 #
 # =============================================================================
     #sns.pairplot(data=df)
+    g = sns.pairplot(df, diag_kind="kde")
+    g.map_lower(sns.kdeplot, levels=10, color=".2")
+    plt.show()
 
 
 

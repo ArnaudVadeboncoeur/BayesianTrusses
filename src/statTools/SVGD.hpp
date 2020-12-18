@@ -143,15 +143,6 @@ Mat SVGD< FUNC >::gradSVGD( const Mat& X ){
 
 	gradient = (double) 1. / X.rows() * ( kernMat_ * delLogPMat_ + sumDerKernMat_ );
 
-//	std::cout << "\n\n\n\n"<<  std::endl;
-//	std::cout << "kernMat_\n"<<  kernMat_ << std::endl;
-//	std::cout << "delLogPMat_\n"<<  delLogPMat_ << std::endl;
-//	std::cout << "sumDerKernMat_\n"<<  sumDerKernMat_ << std::endl;
-//	std::cout << "gradient\n"<<  gradient << std::endl;
-//	std::cout << "Xn_\n"<<  Xn_ << std::endl;
-//	std::cout << "\n\n\n\n"<<  std::endl;
-
-
 	return gradient;
 }
 
@@ -167,7 +158,10 @@ void SVGD< FUNC >::gradOptim(  int iter,  double nesterovAlpha, double nesterovM
 	gradNormHistory.resize(iter, 1);
 	pertNormHistory.resize(iter, 1);
 
-	Mat vt (Xn_.rows(), Xn_.cols() ); vt.setZero();
+	Mat vt      (Xn_.rows(), Xn_.cols() ); vt.setZero();
+	Mat temp_vt (Xn_.rows(), Xn_.cols() ); temp_vt.setZero();
+
+	double unstableNudge = 1e-8;
 
 	for(int i = 0; i < iter; ++i){
 		std::cout << "iteration: " << i<< std::endl;
@@ -182,18 +176,33 @@ void SVGD< FUNC >::gradOptim(  int iter,  double nesterovAlpha, double nesterovM
 
 
 		pertNormHistory(i, 0) = vt.norm();
+
 		std::cout << "pertNormHistory(i, 0)\n"<<  pertNormHistory(i, 0) << std::endl;
 
 		std::cout << "avg pertNormHistory(i, 0)\n"<< ( vt.colwise().norm() ).sum() * (double) 1./vt.rows() << std::endl;
+
+
+
+		if(vt.array().isNaN().any() == true || vt.array().isInf().any() == true){
+			std::cout << "\n\ncontains inf or nan" << std::endl;
+			std::cout << "vt + unstableNudge\n" <<std::endl;
+			vt = (temp_vt.array() + unstableNudge).matrix();
+		}
+
+		if(pertNormHistory(i, 0) > 0.1){
+			std::cout << "\n\n\n pertb > 0.1\n" << pertNormHistory(i, 0) << std::endl;
+			vt = 0.0001 * vt / vt.norm();
+			pertNormHistory(i, 0) = vt.norm();
+			std::cout << "\n\n\n corrected = \n" << pertNormHistory(i, 0) << std::endl;
+		}
 
 		Xn_ += vt;
 
 		Xn_ = Xn_.unaryExpr([](double v) { return v > 0 ? v : 1e-6; });
 
-		if(pertNormHistory(i, 0) > 0.5){
-			std::cout << "\n\n\n pertb > 0.5\n" << Xn_ << pertNormHistory(i, 0) << std::endl;
-		}
+		temp_vt = vt;
 
+		std::cout << "\n\n";
 
 	}
 
