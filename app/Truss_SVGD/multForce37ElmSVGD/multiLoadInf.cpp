@@ -306,8 +306,19 @@ int main(){
 	SVGD< FUNC > svgd(delLogPSVGD);
 	svgd.InitSamples( Xinit );
 	//svgd.gradOptim(75, 5*1e-8);
-	svgd.gradOptim(100, 1e-8, 0.90);
 	//svgd.gradOptim(500, 1e-10, 0.95);
+
+	//svgd.gradOptim_Nes(100, 1e-8, 0.90);
+
+
+	//svgd.gradOptim_Adam(100, 5 * 1e-3);
+
+	double iter1 = 350;
+	double alpha1 = 5 * 1e-5;
+	std::cout << "Iter = " << iter1 << "\n";
+	std::cout << "alpha = " << alpha1 << "\n";
+	svgd.gradOptim_AdaMax(iter1, alpha1);
+
 	Mat X = svgd.getSamples();
 
 	std::ofstream myFilePostSamples;
@@ -320,16 +331,18 @@ int main(){
 
 	std::ofstream gradHist;
 	gradHist.open("gradHist.dat", std::ios::trunc);
-
 	gradHist << svgd.gradNormHistory.format(CommaInitFmt) ;
 	gradHist.close();
 
 	std::ofstream pertHist;
 	pertHist.open("pertist.dat", std::ios::trunc);
-
 	pertHist << svgd.pertNormHistory.format(CommaInitFmt) ;
 	pertHist.close();
 
+	std::ofstream XHist;
+	XHist.open("XHist.dat", std::ios::trunc);
+	XHist << svgd.XNormHistory.format(CommaInitFmt) ;
+	XHist.close();
 
 
 
