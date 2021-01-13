@@ -6,6 +6,8 @@ LD    = g++
 #INCLUDES  = -I$(ThreedTrussDef.hpp)
 INCLUDES += -I$(/src/FEMClass.hpp)
 INCLUDES += -I$(EIGEN_DIR)
+INCLUDES += -I$(KNN_DIR)
+#INCLUDES += -I$(/home/avprecis/git/knn-cpp/include)
 
 # libraries
 LIBS  = 
