@@ -11,6 +11,7 @@
 #include <algorithm>
 
 #include <Eigen/Dense>
+#include "KNNgrowth.hpp"
 
 using Mat       = Eigen::MatrixXd;
 using Vect      = Eigen::VectorXd;
@@ -307,9 +308,9 @@ void SVGD< FUNC >::gradOptim_AdaMax(  int iter,  double alpha ){
 	double beta_2 = 0.999;
 	double epsi   = 1e-8;
 
-	gradNormHistory.resize(iter, 1);
-	pertNormHistory.resize(iter, 1);
-	XNormHistory.resize(iter, 1);
+	gradNormHistory.resize(iter, 1); gradNormHistory.setZero();
+	pertNormHistory.resize(iter, 1); pertNormHistory.setZero();
+	XNormHistory.resize(iter, 1);    XNormHistory.setZero();
 
 	Mat mt        (Xn_.rows(), Xn_.cols() ); mt.setZero();
 	Mat ut        (Xn_.rows(), Xn_.cols() ); ut.setZero();
@@ -318,6 +319,14 @@ void SVGD< FUNC >::gradOptim_AdaMax(  int iter,  double alpha ){
 	Mat temp_pert (Xn_.rows(), Xn_.cols() ); temp_pert.setZero();
 
 	double unstableNudge = 1e-8;
+
+	//test knnDup --
+
+	KNNDup knnAdd(Xn_ , 1);
+	knnAdd.makeNewPoints();
+	return;
+
+	//end test knnDup --
 
 	for(int i = 0; i < iter; ++i){
 
@@ -337,26 +346,22 @@ void SVGD< FUNC >::gradOptim_AdaMax(  int iter,  double alpha ){
 
 		pertNormHistory(i, 0) = pert.norm();
 
-		std::cout << "pertNormHistory(i, 0)\n"<<  pertNormHistory(i, 0) << std::endl;
-
-		std::cout << "avg pertNormHistory(i, 0)\n"<< ( pert.colwise().norm() ).sum() * (double) 1./pert.rows() << std::endl;
-
-
 
 		if(pert.array().isNaN().any() == true || pert.array().isInf().any() == true){
 			std::cout << "\n\ncontains inf or nan" << std::endl;
 			std::cout << "vt + unstableNudge\n" <<std::endl;
+			std::cout << "grad_\n" << grad_ << std::endl;
+			std::cout << "pert\n" << pert << std::endl;
+			return;
 			pert = (temp_pert.array() + unstableNudge).matrix();
 		}else{
 			temp_pert = pert;
 		}
 
-//		if(pertNormHistory(i, 0) > 0.1){
-//			std::cout << "\n\n\n pertb > 0.1\n" << pertNormHistory(i, 0) << std::endl;
-//			pert = 0.0001 * pert / pert.norm();
-//			pertNormHistory(i, 0) = pert.norm();
-//			std::cout << "\n\n\n corrected = \n" << pertNormHistory(i, 0) << std::endl;
-//		}
+		std::cout << "pertNormHistory(i, 0)\n"<<  pertNormHistory(i, 0) << std::endl;
+
+		std::cout << "avg pertNormHistory(i, 0)\n"<< ( pert.colwise().norm() ).sum() * (double) 1./pert.rows() << std::endl;
+
 
 		Xn_ -= pert;
 
