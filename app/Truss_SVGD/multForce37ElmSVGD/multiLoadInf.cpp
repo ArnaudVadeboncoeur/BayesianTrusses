@@ -31,14 +31,24 @@ int main(){
 
     constexpr unsigned DimK       =  30 ;
     constexpr unsigned DimObs     =  20 ;
-    constexpr unsigned DimPara    =  10 ;
+    constexpr unsigned DimPara    =  22 ;
 
     constexpr unsigned NumTotPara =  37;
     //these worked well --           {12, 13,14, 15, 16, 17  };
     //std::vector<int> paraIndex     { 0, 1, 2,3,4, 5};//, 7, 8, 9, 10, 11 };
-    std::vector<int> paraIndex     { 12, 13,14, 15, 16, 17, 18, 19, 20, 21};// DimParam = 10
     //std::vector<int> paraIndex     { 12, 13,14, 15, 16};//, 17, 18, 19, 20, 21};// DimParam = 6
     //std::vector<int> paraIndex     { 13 , 16 };
+
+
+    //---
+    // DimParam = 10 Worked - Jan 6 2021 - 400 iter 1-e4 apha adaMax
+    //std::vector<int> paraIndex     { 12, 13,14, 15, 16, 17, 18, 19, 20, 21};
+    //std::vector <int> numSamples {3,3, 3, 3, 3};
+    //500 svgd samples
+    //---
+
+    std::vector<int> paraIndex     {0, 1, 2, 3, 4,5, 6, 7, 8, 9, 10, 11, 12, 13,14, 15, 16, 17, 18, 19, 20, 21};
+
     bool plot                      = false;
     bool             plot_1_dim    = false;
     std::vector<int> plotParaIndex {0, 1};
@@ -313,8 +323,9 @@ int main(){
 
 	//svgd.gradOptim_Adam(100, 5 * 1e-3);
 
-	double iter1 = 350;
-	double alpha1 = 5 * 1e-5;
+	double iter1 = 400;
+	double alpha1 = 1 * 1e-4;
+	//double alpha1 = 5 * 1e-5;
 	std::cout << "Iter = " << iter1 << "\n";
 	std::cout << "alpha = " << alpha1 << "\n";
 	svgd.gradOptim_AdaMax(iter1, alpha1);
