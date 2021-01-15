@@ -1,16 +1,13 @@
-/*
- * BTrussMCMC_MH.cpp
- *
- *  Created on: 12 Dec 2019
- *      Author: arnaudv
- */
+
 
 #include "../../../src/FEMClass.hpp"
 #include "../../../src/statTools/SVGD.hpp"
 #include "../../../src/statTools/MVN.hpp"
+#include "../../../src/statTools/KNNgrowth.hpp"
 
 #include "trueModelDataGen.hpp"
 #include "../Truss37Elm.hpp"
+
 
 #include <Eigen/Dense>
 #include <eigen3/unsupported/Eigen/MatrixFunctions>
@@ -23,8 +20,11 @@
 #include <cmath>
 #include <math.h>
 
+#include <chrono>
+
 
 int main(){
+
 
 	using vecMat = std::vector< Eigen::MatrixXd > ;
 
@@ -303,57 +303,101 @@ int main(){
 								 " ", "\n",
 								 "", "", "", "");
 
-	MVN mvn( priorMeans , PriorCovMatrix  );
-	Eigen::MatrixXd Xinit = mvn.sampleMVN( 500 );
-
 	std::ofstream myFilePriorSamples;
 	myFilePriorSamples.open("priorSamples.dat", std::ios::trunc);
-	myFilePriorSamples << Xinit.format(CommaInitFmt) ;
+
+	std::ofstream pertHist;
+	pertHist.open("pertHist.dat", std::ios::out | std::ios::app );
+
+	std::ofstream gradHist;
+	gradHist.open("gradHist.dat", std::ios::out | std::ios::app);
+
+	std::ofstream XHist;
+	XHist.open("XHist.dat", std::ios::out | std::ios::app);
+
+
+
+	double iter  		 = 10000;
+	double alpha         = 1e-3;
+	double tau           = 0.9;
+	double pertNromRatio = 0.05;
+
+	int N0               = 5;
+	int Nmax             = 1000-1;
+
+	double duplication_ratio = 1;
+
+	MVN mvn( priorMeans , PriorCovMatrix  );
+	Eigen::MatrixXd X = mvn.sampleMVN( N0 );
+
+
+	myFilePriorSamples << X.format(CommaInitFmt) ;
 	myFilePriorSamples.close();
 
-	Eigen::MatrixXd delLogPMat = std::get<1>( delLogPtupMatMat(Xinit) );
+	std::cout << "Iter = "  << iter << "\n";
+	std::cout << "alpha = " << alpha << "\n";
+	std::cout << "tau = "   << tau << "\n";
 
+	Mat tempExpand;
+
+	int ctrDup = 0;
+
+	auto start = std::chrono::high_resolution_clock::now();
+
+	while( X.rows() < Nmax ){
+
+		alpha = alpha * tau;
+
+		SVGD< FUNC > svgd(delLogPSVGD);
+		svgd.InitSamples( X );
+		svgd.gradOptim_AdaMax(iter, alpha, pertNromRatio);
+		X = svgd.Xn;
+
+		std::cout << "X.rows() " << X.rows() << std::endl;
+
+		KNNDup knnAdd(X , duplication_ratio );
+		knnAdd.makeNewPoints();
+		knnAdd.CombineNewX();
+
+		X.resize(knnAdd.combinedNewX.rows(), knnAdd.combinedNewX.cols());
+		X = knnAdd.combinedNewX;
+
+		std::cout << "X-new.rows() " << X.rows() << std::endl;
+
+		pertHist << svgd.pertNormHistory.format(CommaInitFmt) ;
+		gradHist << svgd.gradNormHistory.format(CommaInitFmt) ;
+		XHist << svgd.XNormHistory.format(CommaInitFmt) ;
+
+		std::cout << "ctr = " << ctrDup << std::endl;
+		ctrDup++;
+	}
+
+	alpha = alpha * tau;
 	SVGD< FUNC > svgd(delLogPSVGD);
-	svgd.InitSamples( Xinit );
-	//svgd.gradOptim(75, 5*1e-8);
-	//svgd.gradOptim(500, 1e-10, 0.95);
+	svgd.InitSamples( X );
+	svgd.gradOptim_AdaMax(iter, alpha, pertNromRatio);
+	X = svgd.Xn;
 
-	//svgd.gradOptim_Nes(100, 1e-8, 0.90);
+	pertHist << svgd.pertNormHistory.format(CommaInitFmt) ;
+	gradHist << svgd.gradNormHistory.format(CommaInitFmt) ;
+	XHist << svgd.XNormHistory.format(CommaInitFmt) ;
 
+	std::cout << "ctr = " << ctrDup << std::endl;
 
-	//svgd.gradOptim_Adam(100, 5 * 1e-3);
+	auto stop = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
+	std::cout << duration.count() << std::endl;
 
-	double iter1 = 400;
-	double alpha1 = 1 * 1e-4;
-	//double alpha1 = 5 * 1e-5;
-	std::cout << "Iter = " << iter1 << "\n";
-	std::cout << "alpha = " << alpha1 << "\n";
-	svgd.gradOptim_AdaMax(iter1, alpha1);
-
-	Mat X = svgd.getSamples();
+	pertHist.close();
+	gradHist.close();
+	XHist.close();
 
 	std::ofstream myFilePostSamples;
 	myFilePostSamples.open("postSamples.dat", std::ios::trunc);
-
 	myFilePostSamples << X.format(CommaInitFmt) ;
 	myFilePostSamples.close();
 
-	//Mat gradHist = svgd.gradNormHistory;
 
-	std::ofstream gradHist;
-	gradHist.open("gradHist.dat", std::ios::trunc);
-	gradHist << svgd.gradNormHistory.format(CommaInitFmt) ;
-	gradHist.close();
-
-	std::ofstream pertHist;
-	pertHist.open("pertist.dat", std::ios::trunc);
-	pertHist << svgd.pertNormHistory.format(CommaInitFmt) ;
-	pertHist.close();
-
-	std::ofstream XHist;
-	XHist.open("XHist.dat", std::ios::trunc);
-	XHist << svgd.XNormHistory.format(CommaInitFmt) ;
-	XHist.close();
 
 
 
