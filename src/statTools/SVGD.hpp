@@ -11,7 +11,7 @@
 #include <algorithm>
 
 #include <Eigen/Dense>
-#include "KNNgrowth.hpp"
+
 
 using Mat       = Eigen::MatrixXd;
 using Vect      = Eigen::VectorXd;
@@ -24,21 +24,23 @@ public:
 	SVGD( );// { }
 	SVGD( FUNC delLogP ) {delLogP_ = delLogP;}
 
-	void InitSamples( const Mat& samples  ) { Xn_ = samples; return; }
+	void InitSamples( const Mat& samples  ) { Xn = samples; return; }
 
 	void gradOptim_Nes( int iter,  double nesterovAlpha = 1e-3, double nesterovMu = 0.9);
 
 	void gradOptim_Adam( int iter,  double alpha = 1e-3);
 
-	void gradOptim_AdaMax( int iter,  double alpha = 1e-3);
+	void gradOptim_AdaMax( int iter,  double alpha = 1e-3, double PertNormRatioStop = 1e-9 );
 
-	Mat getSamples( ) { return Xn_;}
+	Mat getSamples( ) { return Xn;}
 
 	//creat matrix of hard limits or constraints for SVGD
 
 	Mat gradNormHistory;
 	Mat pertNormHistory;
 	Mat XNormHistory;
+
+	Mat   Xn;
 
 	//! destructor
 	~SVGD( ) { }
@@ -53,7 +55,7 @@ private:
 	FUNC  delLogP_;
 
 	Mat   delLogPMat_;
-	Mat   Xn_;
+
 	Mat   grad_;
 	Mat   pertubation_;
 
@@ -166,15 +168,15 @@ void SVGD< FUNC >::gradOptim_Nes(  int iter,  double nesterovAlpha, double neste
 	gradNormHistory.resize(iter, 1);
 	pertNormHistory.resize(iter, 1);
 
-	Mat vt      (Xn_.rows(), Xn_.cols() ); vt.setZero();
-	Mat temp_vt (Xn_.rows(), Xn_.cols() ); temp_vt.setZero();
+	Mat vt      (Xn.rows(), Xn.cols() ); vt.setZero();
+	Mat temp_vt (Xn.rows(), Xn.cols() ); temp_vt.setZero();
 
 	double unstableNudge = 1e-8;
 
 	for(int i = 0; i < iter; ++i){
 		std::cout << "iteration: " << i<< std::endl;
 
-		grad_ = gradSVGD( Xn_ + nesterovMu_ * vt );
+		grad_ = gradSVGD( Xn + nesterovMu_ * vt );
 
 		gradNormHistory(i, 0) = grad_.norm();
 
@@ -204,9 +206,9 @@ void SVGD< FUNC >::gradOptim_Nes(  int iter,  double nesterovAlpha, double neste
 			std::cout << "\n\n\n corrected = \n" << pertNormHistory(i, 0) << std::endl;
 		}
 
-		Xn_ += vt;
+		Xn += vt;
 
-		Xn_ = Xn_.unaryExpr([](double v) { return v > 0 ? v : 1e-6; });
+		Xn = Xn.unaryExpr([](double v) { return v > 0 ? v : 1e-6; });
 
 		temp_vt = vt;
 
@@ -231,14 +233,14 @@ void SVGD< FUNC >::gradOptim_Adam(  int iter,  double alpha ){
 	gradNormHistory.resize(iter, 1);
 	pertNormHistory.resize(iter, 1);
 
-	Mat vt        (Xn_.rows(), Xn_.cols() ); vt.setZero();
-	Mat mt        (Xn_.rows(), Xn_.cols() ); mt.setZero();
+	Mat vt        (Xn.rows(), Xn.cols() ); vt.setZero();
+	Mat mt        (Xn.rows(), Xn.cols() ); mt.setZero();
 
-	Mat vt_hat    (Xn_.rows(), Xn_.cols() ); vt_hat.setZero();
-	Mat mt_hat    (Xn_.rows(), Xn_.cols() ); mt_hat.setZero();
+	Mat vt_hat    (Xn.rows(), Xn.cols() ); vt_hat.setZero();
+	Mat mt_hat    (Xn.rows(), Xn.cols() ); mt_hat.setZero();
 
-	Mat pert      (Xn_.rows(), Xn_.cols() ); pert.setZero();
-	Mat temp_pert (Xn_.rows(), Xn_.cols() ); temp_pert.setZero();
+	Mat pert      (Xn.rows(), Xn.cols() ); pert.setZero();
+	Mat temp_pert (Xn.rows(), Xn.cols() ); temp_pert.setZero();
 
 	double unstableNudge = 1e-8;
 
@@ -246,7 +248,7 @@ void SVGD< FUNC >::gradOptim_Adam(  int iter,  double alpha ){
 
 		std::cout << "iteration: " << i<< std::endl;
 
-		grad_ =  - gradSVGD( Xn_ );
+		grad_ =  - gradSVGD( Xn );
 
 		gradNormHistory(i, 0) = grad_.norm();
 
@@ -283,9 +285,9 @@ void SVGD< FUNC >::gradOptim_Adam(  int iter,  double alpha ){
 //			std::cout << "\n\n\n corrected = \n" << pertNormHistory(i, 0) << std::endl;
 //		}
 
-		Xn_ -= pert;
+		Xn -= pert;
 
-		Xn_ = Xn_.unaryExpr([](double v) { return v > 0 ? v : 1e-6; });
+		Xn = Xn.unaryExpr([](double v) { return v > 0 ? v : 1e-6; });
 
 		temp_pert = pert;
 
@@ -298,7 +300,7 @@ void SVGD< FUNC >::gradOptim_Adam(  int iter,  double alpha ){
 
 
 template< typename FUNC >
-void SVGD< FUNC >::gradOptim_AdaMax(  int iter,  double alpha ){
+void SVGD< FUNC >::gradOptim_AdaMax(  int iter,  double alpha ,  double PertNormRatioStop){
 
 	std::cout << "Init Params --  AdaMax Opt" << std::endl;
 
@@ -308,33 +310,26 @@ void SVGD< FUNC >::gradOptim_AdaMax(  int iter,  double alpha ){
 	double beta_2 = 0.999;
 	double epsi   = 1e-8;
 
-	gradNormHistory.resize(iter, 1); gradNormHistory.setZero();
-	pertNormHistory.resize(iter, 1); pertNormHistory.setZero();
-	XNormHistory.resize(iter, 1);    XNormHistory.setZero();
+	gradNormHistory.resize(0, 1);
+	pertNormHistory.resize(0, 1);
+	XNormHistory.resize(0, 1);
 
-	Mat mt        (Xn_.rows(), Xn_.cols() ); mt.setZero();
-	Mat ut        (Xn_.rows(), Xn_.cols() ); ut.setZero();
+	Mat mt        (Xn.rows(), Xn.cols() ); mt.setZero();
+	Mat ut        (Xn.rows(), Xn.cols() ); ut.setZero();
 
-	Mat pert      (Xn_.rows(), Xn_.cols() ); pert.setZero();
-	Mat temp_pert (Xn_.rows(), Xn_.cols() ); temp_pert.setZero();
+	Mat pert      (Xn.rows(), Xn.cols() ); pert.setZero();
+	Mat temp_pert (Xn.rows(), Xn.cols() ); temp_pert.setZero();
 
 	double unstableNudge = 1e-8;
-
-	//test knnDup --
-
-	KNNDup knnAdd(Xn_ , 1);
-	knnAdd.makeNewPoints();
-	return;
-
-	//end test knnDup --
 
 	for(int i = 0; i < iter; ++i){
 
 		std::cout << "iteration: " << i<< std::endl;
 
-		grad_ =  - gradSVGD( Xn_ );
+		grad_ =  - gradSVGD( Xn );
 
-		gradNormHistory(i, 0) = grad_.norm();
+		gradNormHistory.conservativeResize(gradNormHistory.rows() + 1, 1);
+		gradNormHistory(gradNormHistory.rows() - 1, 0) = grad_.norm();
 
 		std::cout << "gradNormHistory(i, 0)\n"<<  gradNormHistory(i, 0) << std::endl;
 
@@ -344,7 +339,10 @@ void SVGD< FUNC >::gradOptim_AdaMax(  int iter,  double alpha ){
 
 		pert   = alpha / (1 - std::pow(beta_1, i+1)) * ( mt.array() / ut.array() ).matrix();
 
-		pertNormHistory(i, 0) = pert.norm();
+		pertNormHistory.conservativeResize(pertNormHistory.rows() + 1, 1);
+		pertNormHistory(pertNormHistory.rows() - 1, 0) = pert.norm();
+
+		//pertNormHistory(i, 0) = pert.norm();
 
 
 		if(pert.array().isNaN().any() == true || pert.array().isInf().any() == true){
@@ -362,12 +360,19 @@ void SVGD< FUNC >::gradOptim_AdaMax(  int iter,  double alpha ){
 
 		std::cout << "avg pertNormHistory(i, 0)\n"<< ( pert.colwise().norm() ).sum() * (double) 1./pert.rows() << std::endl;
 
+		if( pertNormHistory(i, 0)  <  PertNormRatioStop * pertNormHistory(0, 0)    ){
+			break;
+		}
 
-		Xn_ -= pert;
+		Xn -= pert;
 
-		Xn_ = Xn_.unaryExpr([](double v) { return v > 0 ? v : 1e-6; });
+		Xn = Xn.unaryExpr([](double v) { return v > 0 ? v : 1e-6; });
 
-		XNormHistory(i, 0) = Xn_.norm();
+
+		XNormHistory.conservativeResize(XNormHistory.rows() + 1, 1);
+		XNormHistory(XNormHistory.rows() - 1, 0) = Xn.norm();
+
+		//XNormHistory(i, 0) = Xn.norm();
 
 		std::cout << "XNormHistory(i, 0)\n"<<  XNormHistory(i, 0) << std::endl;
 
