@@ -116,7 +116,7 @@ if(dimPlot == -3):
 #
 # =============================================================================
     #sns.pairplot(data=df)
-    g = sns.pairplot(df, diag_kind="kde")
+    g = sns.pairplot(df, diag_kind="kde",  corner=True)
     g.map_lower(sns.kdeplot, levels=10, color=".2")
     plt.show()
 

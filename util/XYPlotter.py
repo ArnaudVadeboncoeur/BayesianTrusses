@@ -11,65 +11,66 @@ plt.rc('font', **{'family':'serif','serif':['Computer Modern Roman']})
 #data = []
 
 def is_float(string):
-	try:
-		return float(string)
-	except ValueError:
-		return False
+    try:
+        return float(string)
+    except ValueError:
+        return False
 moreFiles = "true"
 ctr = 0
 while(moreFiles == "true"):
-	data = []
-	ctr += 1
-	myFile = input("input file Path: ")
-	print("positive int for column to plot 1D")
-	print("-1 to exit")
-	print("-2 for multi-D mode")
+    data = []
+    ctr += 1
+    myFile = input("input file Path: ")
+    print("positive int for column to plot 1D")
+    print("-1 to exit")
+    print("-2 for multi-D mode")
 
 
-	with open(myFile,'r') as f:
-		reader = f.readlines()
-		for line  in reader:
-			split = line.rstrip().split(" ")
-			data.append([float(line) if is_float(line) else line  for line in split ])
-	data = np.array(data, dtype = float)
+    with open(myFile,'r') as f:
+        reader = f.readlines()
+        for line  in reader:
+            split = line.rstrip().split(" ")
+            data.append([float(line) if is_float(line) else line  for line in split ])
+    data = np.array(data, dtype = float)
 
-	#print(data)
+    #print(data)
 
-	try:
-		columns = len(data[0])# - 1
-	except:
-		columns =1
+    try:
+        columns = len(data[0])# - 1
+    except:
+        columns =1
 
-	ndim = columns
-	print("ndim = ", ndim)
+    ndim = columns
+    print("ndim = ", ndim)
 
 
-	dimPlot = int( input("input Dim to plot : ") )
-	while( dimPlot >= 0 ):
+    dimPlot = int( input("input Dim to plot : ") )
+    while( dimPlot >= 0 ):
 
-	    plt.plot(data[:,dimPlot])
-	    plt.ylabel(r"$\|Pertubation\|_2$")
-	    plt.xlabel("Iterations")
-	    plt.savefig( 'Dim{}-Row.png'.format(dimPlot) )
-	    plt.show()
-	    plt.close()
-	    dimPlot = int( input("input Dim to plot : ") )
+        plt.plot(data[:,dimPlot])
+        #plt.ylabel(r"$\|Pertubation\|_2$")
+        plt.ylabel(r"$\|X\|_2$")
+        plt.xlabel("Iterations")
+        plt.savefig( 'Dim{}-Row.png'.format(dimPlot) )
+        plt.show()
+        plt.close()
+        dimPlot = int( input("input Dim to plot : ") )
 
-	if(dimPlot == -2):
+    if(dimPlot == -2):
 
-	    dimPlot1 = int( input("input Dim to plot : ") )
-	    dimPlot2 = int( input("input Dim to plot : ") )
+        dimPlot1 = int( input("input Dim to plot : ") )
+        dimPlot2 = int( input("input Dim to plot : ") )
 
-	if(ctr == 1):
-		label = "True distribution"
-	elif(ctr == 2):
-		label = "Laplace approximation"
-	plt.plot(data[:,dimPlot1],data[:,dimPlot2], label = label )
-	plt.legend()
+    if(ctr == 1):
+        label = "True distribution"
+    elif(ctr == 2):
+        label = "Laplace approximation"
+    plt.plot(data[:,dimPlot1],data[:,dimPlot2], label = label )
+    plt.legend()
 
-	plt.savefig('Dim{0} - Dim{1}.png'.format( dimPlot1, dimPlot2 ) )
+    plt.savefig('Dim{0} - Dim{1}.png'.format( dimPlot1, dimPlot2 ) )
 
-	moreFiles = input("more files? true/false: ")
+    moreFiles = input("more files? true/false: ")
 
 plt.show()
 plt.close()
