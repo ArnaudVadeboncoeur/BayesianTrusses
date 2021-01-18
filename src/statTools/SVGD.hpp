@@ -30,7 +30,7 @@ public:
 
 	void gradOptim_Adam( int iter,  double alpha = 1e-3);
 
-	void gradOptim_AdaMax( int iter,  double alpha = 1e-3, double PertNormRatioStop = 1e-9 );
+	void gradOptim_AdaMax( int iter,  double alpha = 1e-3, double PertNormRatioStop = 1e-9, double gradNormStop = -1.);
 
 	Mat getSamples( ) { return Xn;}
 
@@ -300,7 +300,7 @@ void SVGD< FUNC >::gradOptim_Adam(  int iter,  double alpha ){
 
 
 template< typename FUNC >
-void SVGD< FUNC >::gradOptim_AdaMax(  int iter,  double alpha ,  double PertNormRatioStop){
+void SVGD< FUNC >::gradOptim_AdaMax(  int iter,  double alpha ,  double PertNormRatioStop, double gradNormStop){
 
 	std::cout << "Init Params --  AdaMax Opt" << std::endl;
 
@@ -347,9 +347,9 @@ void SVGD< FUNC >::gradOptim_AdaMax(  int iter,  double alpha ,  double PertNorm
 
 		if(pert.array().isNaN().any() == true || pert.array().isInf().any() == true){
 			std::cout << "\n\ncontains inf or nan" << std::endl;
-			std::cout << "vt + unstableNudge\n" <<std::endl;
-			std::cout << "grad_\n" << grad_ << std::endl;
-			std::cout << "pert\n" << pert << std::endl;
+			//std::cout << "grad_\n" << grad_ << std::endl;
+			//std::cout << "pert\n" << pert << std::endl;
+			std::cout << "AdaMax stopped\n" <<std::endl;
 			return;
 			pert = (temp_pert.array() + unstableNudge).matrix();
 		}else{
@@ -360,7 +360,9 @@ void SVGD< FUNC >::gradOptim_AdaMax(  int iter,  double alpha ,  double PertNorm
 
 		std::cout << "avg pertNormHistory(i, 0)\n"<< ( pert.colwise().norm() ).sum() * (double) 1./pert.rows() << std::endl;
 
-		if( pertNormHistory(i, 0)  <  PertNormRatioStop * pertNormHistory(0, 0)    ){
+		if( gradNormStop < 0. && pertNormHistory(i, 0)  <  PertNormRatioStop * pertNormHistory(0, 0)    ){
+			break;
+		}else if( gradNormHistory(i, 0)  <  gradNormStop  ){
 			break;
 		}
 

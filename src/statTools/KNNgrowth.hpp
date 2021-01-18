@@ -102,6 +102,19 @@ void KNNDup::makeNewPoints(){
 
     }
 
+
+	/*
+		https://github.com/Rookfighter/knn-cpp
+
+		Songrit Maneewongvatana and David M. Mount,
+		Analysis of Approximate Nearest Neighbor Searching with Clustered Point Sets,
+		DIMACS Series in Discrete Mathematics and Theoretical Computer Science, 2002
+
+		Mohammad Norouzi, Ali Punjani and David J. Fleet,
+		Fast Search in Hamming Space with Multi-Index Hashing,
+		In Proceedings of 2012 IEEE Conference on Computer Vision and Pattern Recognition
+	*/
+
 	knn::KDTreeMinkowski<double, knn::EuclideanDistance<double> > kdtree( colWisePoints );
 	kdtree.setBucketSize(16);
     kdtree.setCompact(false);
