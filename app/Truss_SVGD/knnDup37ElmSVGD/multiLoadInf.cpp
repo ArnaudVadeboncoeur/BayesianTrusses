@@ -31,13 +31,13 @@ int main(){
 
     constexpr unsigned DimK       =  30 ;
     constexpr unsigned DimObs     =  20 ;
-    constexpr unsigned DimPara    =  2 ;
+    constexpr unsigned DimPara    =  22 ;
 
     constexpr unsigned NumTotPara =  37;
     //these worked well --           {12, 13,14, 15, 16, 17  };
     //std::vector<int> paraIndex     { 0, 1, 2,3,4, 5};//, 7, 8, 9, 10, 11 };
     //std::vector<int> paraIndex     { 12, 13,14, 15, 16};//, 17, 18, 19, 20, 21};// DimParam = 6
-    std::vector<int> paraIndex     { 13 , 16 };
+    //std::vector<int> paraIndex     { 13 , 16 };
 
 
     //---
@@ -47,7 +47,7 @@ int main(){
     //500 svgd samples
     //---
 
-    //std::vector<int> paraIndex     {0, 1, 2, 3, 4,5, 6, 7, 8, 9, 10, 11, 12, 13,14, 15, 16, 17, 18, 19, 20, 21};//DimParam = 22
+    std::vector<int> paraIndex     {0, 1, 2, 3, 4,5, 6, 7, 8, 9, 10, 11, 12, 13,14, 15, 16, 17, 18, 19, 20, 21};//DimParam = 22
 
     bool plot                      = false;
     bool             plot_1_dim    = false;
@@ -318,14 +318,24 @@ int main(){
 
 
 	double iter  		 = 10000;
-	double alpha         = 1e-3;
+	double alpha         = 0.5 * 1e-4;
 	double tau           = 0.9;
-	double pertNromRatio = 0.05;
+	double pertNormRatio = 0.05;
 
-	int N0               = 5;
-	int Nmax             = 1000-1;
+	int N0               = 10;
+
+	int Nmax             = 1000;
+
+	double gradNormStop  = -1.;
 
 	double duplication_ratio = 1;
+
+	//for no knn
+	//gradNormStop = 26889.3;2Dim
+	gradNormStop = 130644;//22Dim
+	N0 = 1000;
+
+
 
 	MVN mvn( priorMeans , PriorCovMatrix  );
 	Eigen::MatrixXd X = mvn.sampleMVN( N0 );
@@ -350,8 +360,10 @@ int main(){
 
 		SVGD< FUNC > svgd(delLogPSVGD);
 		svgd.InitSamples( X );
-		svgd.gradOptim_AdaMax(iter, alpha, pertNromRatio);
+		svgd.gradOptim_AdaMax(iter, alpha, pertNormRatio);
 		X = svgd.Xn;
+
+		std::cout << "\n";
 
 		std::cout << "X.rows() " << X.rows() << std::endl;
 
@@ -364,18 +376,24 @@ int main(){
 
 		std::cout << "X-new.rows() " << X.rows() << std::endl;
 
-		pertHist << svgd.pertNormHistory.format(CommaInitFmt) ;
-		gradHist << svgd.gradNormHistory.format(CommaInitFmt) ;
-		XHist << svgd.XNormHistory.format(CommaInitFmt) ;
+		pertHist << svgd.pertNormHistory.format(CommaInitFmt) << "\n" ;
+		gradHist << svgd.gradNormHistory.format(CommaInitFmt) << "\n";
+		XHist    << svgd.XNormHistory.format(CommaInitFmt)    << "\n" ;
 
-		std::cout << "ctr = " << ctrDup << std::endl;
+		std::cout << "ctr = " << ctrDup << "\n\n";
 		ctrDup++;
+	}
+
+	if(X.rows() > Nmax){
+		std::cout << "X : " << X.rows() << " x " << X.cols();
+		X.conservativeResize(Nmax, X.cols() );
+		std::cout << "\t conservativeResize: " << X.rows() << " x " << X.cols() << std::endl;
 	}
 
 	alpha = alpha * tau;
 	SVGD< FUNC > svgd(delLogPSVGD);
 	svgd.InitSamples( X );
-	svgd.gradOptim_AdaMax(iter, alpha, pertNromRatio);
+	svgd.gradOptim_AdaMax(iter, alpha, pertNormRatio, gradNormStop);
 	X = svgd.Xn;
 
 	pertHist << svgd.pertNormHistory.format(CommaInitFmt) ;
@@ -386,7 +404,7 @@ int main(){
 
 	auto stop = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop - start);
-	std::cout << duration.count() << std::endl;
+	std::cout << "Run Time : " << duration.count() << "s"<< std::endl;
 
 	pertHist.close();
 	gradHist.close();

@@ -38,8 +38,8 @@ DataCont trueSampleGen( Eigen::VectorXi ObsIndex ){
     //myTrueFile.open("trueResults.dat", std::ios::trunc);
 
     int numLoadingCases = 5;
-    //std::vector <int> numSamples {5,5, 5, 5, 5};
-    std::vector <int> numSamples {1,1, 1, 1, 1};
+    std::vector <int> numSamples {5,5, 5, 5, 5};
+    //std::vector <int> numSamples {1,1, 1, 1, 1};
 
     int numObsVects = std::accumulate(numSamples.begin(), numSamples.end(), 0);
     std::cout << "numObsVects \n" << numObsVects << std::endl;
