@@ -1,7 +1,10 @@
 
 
 #include "../../../src/FEMClass.hpp"
-#include "../../../src/statTools/SVGD.hpp"
+
+//#include "../../../src/statTools/SVGD.hpp"
+#include "../../../src/statTools/SVGD_LBFGS.hpp"
+
 #include "../../../src/statTools/MVN.hpp"
 #include "../../../src/statTools/KNNgrowth.hpp"
 
@@ -31,13 +34,12 @@ int main(){
 
     constexpr unsigned DimK       =  30 ;
     constexpr unsigned DimObs     =  20 ;
-    constexpr unsigned DimPara    =  22 ;
-    //constexpr unsigned DimPara    =  2 ;
+    constexpr unsigned DimPara    =  6 ;
 
     constexpr unsigned NumTotPara =  37;
     //these worked well --           {12, 13,14, 15, 16, 17  };
     //std::vector<int> paraIndex     { 0, 1, 2,3,4, 5};//, 7, 8, 9, 10, 11 };
-    //std::vector<int> paraIndex     { 12, 13,14, 15, 16};//, 17, 18, 19, 20, 21};// DimParam = 6
+    std::vector<int> paraIndex     { 12, 13,14, 15, 16};//, 17, 18, 19, 20, 21};// DimParam = 6
     //std::vector<int> paraIndex     { 13 , 16 };
 
 
@@ -48,7 +50,7 @@ int main(){
     //500 svgd samples
     //---
 
-    std::vector<int> paraIndex     {0, 1, 2, 3, 4,5, 6, 7, 8, 9, 10, 11, 12, 13,14, 15, 16, 17, 18, 19, 20, 21};//DimParam = 22
+    //std::vector<int> paraIndex     {0, 1, 2, 3, 4,5, 6, 7, 8, 9, 10, 11, 12, 13,14, 15, 16, 17, 18, 19, 20, 21};//DimParam = 22
 
     bool plot                      = false;
     bool             plot_1_dim    = false;
@@ -280,15 +282,6 @@ int main(){
 
     };
 
-
-//	Eigen::MatrixXd testX (1, DimPara); testX.setConstant(0.03);
-//	Eigen::MatrixXd delLogPMat = std::get<1>( delLogP(testX) );
-//	std::cout << delLogPMat << std::endl;
-//	Eigen::MatrixXd  diff(1,1) ; diff << 1e-5;
-//	std::cout << " Numderivative = "<< ( std::get<0>( delLogP(testX + diff) ) - std::get<0>( delLogP(testX - diff) ) ) * 1./2. * diff.inverse()
-//		      << std::endl;
-
-
 //	Eigen::IOFormat spaceSep(
 //			int _precision=Eigen::StreamPrecision,
 //			int _flags=0,
@@ -316,16 +309,25 @@ int main(){
 	std::ofstream XHist;
 	XHist.open("XHist.dat", std::ios::out | std::ios::app);
 
+	std::ofstream CEHist;
+	CEHist.open("CEHist.dat", std::ios::out | std::ios::app);
 
 
-	double iter  		 = 1000;
+
+	double iter  		 = 100;
 	double alpha         = 0.5 * 1e-4;
+	alpha = 1e-3;
 	double tau           = 0.9;
 	double pertNormRatio = 0.05;
+	double crossEntropyRatio = -1;
+	pertNormRatio = -1.;
+	//alpha = 1e-3;
+	crossEntropyRatio = 0.005;
 
 	int N0               = 10;
+	N0 = 500;
 
-	int Nmax             = 1000;
+	int Nmax             = 500;
 
 	double gradNormStop  = -1.;
 
@@ -333,8 +335,7 @@ int main(){
 
 	//for no knn
 	//gradNormStop = 26889.3;2Dim
-//***	gradNormStop = 130644;//22Dim
-//***	N0 = 1000;
+	//gradNormStop = 130644;//22Dim
 
 
 
@@ -362,7 +363,7 @@ int main(){
 
 		SVGD< FUNC > svgd(delLogPSVGD);
 		svgd.InitSamples( X );
-		svgd.gradOptim_AdaMax(iter, alpha, pertNormRatio);
+		svgd.gradOptim_AdaMaxCE(delLogPtupMatMat, iter, alpha, crossEntropyRatio, pertNormRatio);
 		X = svgd.Xn;
 
 		std::cout << "\n";
@@ -381,6 +382,7 @@ int main(){
 		pertHist << svgd.pertNormHistory.format(CommaInitFmt) << "\n" ;
 		gradHist << svgd.gradNormHistory.format(CommaInitFmt) << "\n";
 		XHist    << svgd.XNormHistory.format(CommaInitFmt)    << "\n" ;
+		CEHist    << svgd.CrossEntropyHistory.format(CommaInitFmt)    << "\n" ;
 
 		std::cout << "ctr = " << ctrDup << "\n\n";
 		ctrDup++;
@@ -395,12 +397,13 @@ int main(){
 	alpha = alpha * tau;
 	SVGD< FUNC > svgd(delLogPSVGD);
 	svgd.InitSamples( X );
-	svgd.gradOptim_AdaMax(iter, alpha, pertNormRatio, gradNormStop);
+	svgd.gradOptim_AdaMaxCE(delLogPtupMatMat, iter, alpha, crossEntropyRatio, pertNormRatio, gradNormStop);
 	X = svgd.Xn;
 
 	pertHist << svgd.pertNormHistory.format(CommaInitFmt) ;
 	gradHist << svgd.gradNormHistory.format(CommaInitFmt) ;
 	XHist << svgd.XNormHistory.format(CommaInitFmt) ;
+	CEHist    << svgd.CrossEntropyHistory.format(CommaInitFmt)    << "\n" ;
 
 	std::cout << "ctr = " << ctrDup << std::endl;
 
@@ -411,6 +414,7 @@ int main(){
 	pertHist.close();
 	gradHist.close();
 	XHist.close();
+	CEHist.close();
 
 	std::ofstream myFilePostSamples;
 	myFilePostSamples.open("postSamples.dat", std::ios::trunc);
