@@ -1,9 +1,10 @@
 
 
 #include "../../../src/FEMClass.hpp"
+#include "../../../src/matTools.hpp"
 
 //#include "../../../src/statTools/SVGD.hpp"
-#include "../../../src/statTools/SVGD_LBFGS.hpp"
+#include "../../../src/statTools/SVGD_LBFGS2.hpp"
 
 #include "../../../src/statTools/MVN.hpp"
 #include "../../../src/statTools/KNNgrowth.hpp"
@@ -14,6 +15,9 @@
 
 #include <Eigen/Dense>
 #include <eigen3/unsupported/Eigen/MatrixFunctions>
+
+
+#include <LBFGSB.h>
 
 #include <iostream>
 #include <fstream>
@@ -34,13 +38,13 @@ int main(){
 
     constexpr unsigned DimK       =  30 ;
     constexpr unsigned DimObs     =  20 ;
-    constexpr unsigned DimPara    =  6 ;
+    constexpr unsigned DimPara    =  2 ;
 
     constexpr unsigned NumTotPara =  37;
     //these worked well --           {12, 13,14, 15, 16, 17  };
     //std::vector<int> paraIndex     { 0, 1, 2,3,4, 5};//, 7, 8, 9, 10, 11 };
-    std::vector<int> paraIndex     { 12, 13,14, 15, 16};//, 17, 18, 19, 20, 21};// DimParam = 6
-    //std::vector<int> paraIndex     { 13 , 16 };
+    //std::vector<int> paraIndex     { 12, 13,14, 15, 16};//, 17, 18, 19, 20, 21};// DimParam = 6
+    std::vector<int> paraIndex     { 13 , 16 };
 
 
     //---
@@ -325,14 +329,17 @@ int main(){
 	crossEntropyRatio = 0.005;
 
 	int N0               = 10;
-	N0 = 500;
 
-	int Nmax             = 500;
+
+	int Nmax             = 10;
 
 	double gradNormStop  = -1.;
 
 	double duplication_ratio = 1;
 
+
+	N0   = 100;
+	Nmax = 100;
 	//for no knn
 	//gradNormStop = 26889.3;2Dim
 	//gradNormStop = 130644;//22Dim
@@ -357,36 +364,56 @@ int main(){
 
 	auto start = std::chrono::high_resolution_clock::now();
 
-	while( X.rows() < Nmax ){
-
-		alpha = alpha * tau;
-
-		SVGD< FUNC > svgd(delLogPSVGD);
-		svgd.InitSamples( X );
-		svgd.gradOptim_AdaMaxCE(delLogPtupMatMat, iter, alpha, crossEntropyRatio, pertNormRatio);
-		X = svgd.Xn;
-
-		std::cout << "\n";
-
-		std::cout << "X.rows() " << X.rows() << std::endl;
-
-		KNNDup knnAdd(X , duplication_ratio );
-		knnAdd.makeNewPoints();
-		knnAdd.CombineNewX();
-
-		X.resize(knnAdd.combinedNewX.rows(), knnAdd.combinedNewX.cols());
-		X = knnAdd.combinedNewX;
-
-		std::cout << "X-new.rows() " << X.rows() << std::endl;
-
-		pertHist << svgd.pertNormHistory.format(CommaInitFmt) << "\n" ;
-		gradHist << svgd.gradNormHistory.format(CommaInitFmt) << "\n";
-		XHist    << svgd.XNormHistory.format(CommaInitFmt)    << "\n" ;
-		CEHist    << svgd.CrossEntropyHistory.format(CommaInitFmt)    << "\n" ;
-
-		std::cout << "ctr = " << ctrDup << "\n\n";
-		ctrDup++;
-	}
+//	while( X.rows() < Nmax ){
+//
+//
+//	    // Set up parameters
+//		LBFGSpp::LBFGSBParam<double> param;  // New parameter class
+//	    param.epsilon = 1e-6;
+//	    param.max_iterations = 100;
+//
+//	    // Create solver and function object
+//	    LBFGSpp::LBFGSBSolver<double> solver(param);  // New solver class
+//
+//	    SVGD_LBFGS fun( delLogPtupMatMat, X.rows(), X.cols() );
+//
+//	    // Bounds
+//	    Vect lb = Eigen::VectorXd::Constant(X.rows()* X.cols() , 0.);
+//	    Vect ub = Eigen::VectorXd::Constant(X.rows()* X.cols() , 1.);
+//	    //need to ravel Vect
+//	    //Vect Xn = Eigen::VectorXd::Constant(DimPara, 1.);
+//
+//		//convert coolMajor matrix to rowmajor to be cast as a Eigen::VectorXd
+//		Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> M2(X);
+//		Eigen::VectorXd vX = Eigen::Map<Eigen::VectorXd> (M2.data(), M2.size());
+//
+//		// vX will be overwritten to be the best point found
+//		double fx;
+//		int niter = solver.minimize(fun , vX, fx, lb, ub);
+//
+//	    X = Eigen::Map<Eigen::MatrixXd> (vX.data(), X.cols(), X.rows());
+//		X.transposeInPlace();
+//
+//	    std::cout << niter << " iterations" << std::endl;
+//	    std::cout << "x = \n" << X.transpose() << std::endl;
+//	    std::cout << "f(x) = " << fx << std::endl;
+//
+//		std::cout << "\n";
+//
+//		std::cout << "X.rows() " << X.rows() << std::endl;
+//
+//		KNNDup knnAdd(X , duplication_ratio );
+//		knnAdd.makeNewPoints();
+//		knnAdd.CombineNewX();
+//
+//		X.resize(knnAdd.combinedNewX.rows(), knnAdd.combinedNewX.cols());
+//		X = knnAdd.combinedNewX;
+//
+//		std::cout << "X-new.rows() " << X.rows() << std::endl;;
+//
+//		std::cout << "ctr = " << ctrDup << "\n\n";
+//		ctrDup++;
+//	}
 
 	if(X.rows() > Nmax){
 		std::cout << "X : " << X.rows() << " x " << X.cols();
@@ -394,16 +421,56 @@ int main(){
 		std::cout << "\t conservativeResize: " << X.rows() << " x " << X.cols() << std::endl;
 	}
 
-	alpha = alpha * tau;
-	SVGD< FUNC > svgd(delLogPSVGD);
-	svgd.InitSamples( X );
-	svgd.gradOptim_AdaMaxCE(delLogPtupMatMat, iter, alpha, crossEntropyRatio, pertNormRatio, gradNormStop);
-	X = svgd.Xn;
+	// Set up parameters
+	LBFGSpp::LBFGSBParam<double> param;  // New parameter class
 
-	pertHist << svgd.pertNormHistory.format(CommaInitFmt) ;
-	gradHist << svgd.gradNormHistory.format(CommaInitFmt) ;
-	XHist << svgd.XNormHistory.format(CommaInitFmt) ;
-	CEHist    << svgd.CrossEntropyHistory.format(CommaInitFmt)    << "\n" ;
+	                                       //LBFGSBParam()
+	                                       //{
+	param.m              = 6;              //         m              = 6;
+	param.epsilon        = 1e-3;           //         epsilon        = Scalar(1e-5);
+	param.past           = 1;              //         past           = 1;
+	param.delta          = 1e-3;           //         delta          = Scalar(1e-10);
+	param.max_iterations = 0;              //         max_iterations = 0;
+	param.max_submin     = 20;             //         max_submin     = 20;
+	param.max_linesearch = 100;             //         max_linesearch = 20;
+	param.min_step       = 1e-20;          //         min_step       = Scalar(1e-20);
+	param.max_step       = 5 * 1e-2;       //         max_step       = Scalar(1e+20);
+	param.ftol           = 1e-10;          //         ftol           = Scalar(1e-4);
+	param.wolfe          = 0.9;            //         wolfe          = Scalar(0.9);
+	                                       //     }
+
+
+
+	// Create solver and function object
+	LBFGSpp::LBFGSBSolver<double> solver(param);  // New solver class
+
+	SVGD_LBFGS func( delLogPtupMatMat,  X.rows(),  X.cols(), CEHist );
+
+	// Bounds
+	Eigen::VectorXd lb = Eigen::VectorXd::Constant(X.rows()* X.cols() , 0.);
+	Eigen::VectorXd ub = Eigen::VectorXd::Constant(X.rows()* X.cols() , 1.);
+
+	Eigen::VectorXd vX = matTools::ravelMatrixXdRowWiseToVectorXd(X);
+
+
+	double fx;
+	std::cout << "At Minimization -- \n";
+
+	std::cout << "vX\n" << vX << std::endl;
+
+	int niter = solver.minimize(func , vX, fx,  lb, ub);
+	std::cout << "Done Minimization\n";
+
+	X = Eigen::Map<Eigen::MatrixXd> (vX.data(), X.cols(), X.rows());
+	X.transposeInPlace();
+
+	std::cout << niter << " iterations" << std::endl;
+	std::cout << "X = \n" << X << std::endl;
+	std::cout << "f(x) = " << fx << std::endl;
+
+	std::cout << "\n";
+
+	std::cout << "X.rows() " << X.rows() << std::endl;
 
 	std::cout << "ctr = " << ctrDup << std::endl;
 

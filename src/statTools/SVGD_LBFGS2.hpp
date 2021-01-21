@@ -1,5 +1,5 @@
-#ifndef SVGD_LBGFS_HPP_
-#define SVGD_LBGFS_HPP_
+#ifndef SVGD_LBGFS2_HPP_
+#define SVGD_LBGFS2_HPP_
 
 
 #include <utility>
@@ -7,46 +7,79 @@
 #include <vector>
 #include <random>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <cmath>
 #include <algorithm>
 
 #include <Eigen/Dense>
 
+#include "../matTools.hpp"
+
 
 
 using Mat       = Eigen::MatrixXd;
 using Vect      = Eigen::VectorXd;
 
-//for CE eval
 using tupMatMat 		= std::tuple< Eigen::MatrixXd, Eigen::MatrixXd > ;
 using FUNC_tupMatMat 	= std::function < tupMatMat (const Eigen::MatrixXd) >;
 
 class SVGD_LBFGS{
 
 public:
-	SVGD_LBFGS( FUNC_tupMatMat logPdelLogPFunc) { FowardModelFunc = logPdelLogPFunc ;}
+	//Constructors and member initializer lists
+	SVGD_LBFGS( FUNC_tupMatMat logPdelLogPFunc_, int i_, int j_, std::ofstream& CEHistFile_)
+	: FowardModelFunc( logPdelLogPFunc_ ),
+	  matRows(i_), matCols(j_) , CEHistFile(CEHistFile_)
+	{}
+	double operator()( Vect& vX, Vect& grad){
 
+		Mat gradMatrix;
 
-	void InitSamples( const Mat& samples  ) { Xn_ = samples; return; }
+		Mat X = Eigen::Map<Eigen::MatrixXd> (vX.data(), matCols, matRows );
+	    X.transposeInPlace();
 
-	static double SVGD_gradnCE(const Vect& x, Vect& grad );
+	    //std::cout << "X\n" << X << std::endl;
 
+		double fx = 0.;
 
-	Mat getSamples( ) { return Xn_;}
+		logPdelLogPMat_ = FowardModelFunc( X );
+
+		FMlogP			= std::get<0>( logPdelLogPMat_ );
+		FMdellogP		= std::get<1>( logPdelLogPMat_ );
+
+		kernMat_        = kernMat( X );
+
+		sumDerKernMat_  = sumDerKern( X, kernMat_);
+
+		gradMatrix      = - (double) 1. / X.rows() * ( kernMat_ * FMdellogP + sumDerKernMat_ );
+
+		grad = matTools::ravelMatrixXdRowWiseToVectorXd(gradMatrix);
+
+		crossEntropy_ = - FMlogP.mean();
+		fx = crossEntropy_;
+
+		std::cout << "f(x) = " << fx << std::endl;
+
+		CEHistFile << fx << "\n";
+
+		return fx;
+	}
 
 	Mat gradNormHistory;
 	Mat pertNormHistory;
 	Mat XNormHistory;
 	Mat CrossEntropyHistory;
 
-	Mat   Xn_;
-
 	//! destructor
 	~SVGD_LBFGS( ) { }
 
 
 private:
+
+	int matRows;
+	int matCols;
+	std::ofstream& CEHistFile;
 
 	FUNC_tupMatMat FowardModelFunc;
 
@@ -128,27 +161,4 @@ Mat SVGD_LBFGS::sumDerKern( const Mat& X, const Mat& kernX ){
 }
 
 
-double SVGD_LBFGS::SVGD_gradnCE(const Vect& X, Vect& grad ){
-
-	double fx = 0.;
-
-	logPdelLogPMat_ = FowardModelFunc( X );
-	FMlogP			= std::get<0>( logPdelLogPMat_ );
-	FMdellogP		= std::get<1>( logPdelLogPMat_ );
-
-	kernMat_        = kernMat( X );
-
-	sumDerKernMat_  = sumDerKern( X, kernMat_);
-
-	grad = - (double) 1. / X.rows() * ( kernMat_ * FMdellogP + sumDerKernMat_ );
-
-	crossEntropy_ = - FMlogP.mean();
-	fx = crossEntropy_;
-
-	return fx;
-}
-
-
-
-
-#endif // SVGD_LBGFS_HPP_
+#endif // SVGD_LBGFS2_HPP_

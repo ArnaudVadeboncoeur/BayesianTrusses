@@ -31,12 +31,12 @@ int main(){
 
     constexpr unsigned DimK       =  30 ;
     constexpr unsigned DimObs     =  20 ;
-    constexpr unsigned DimPara    =  6 ;
+    constexpr unsigned DimPara    =  5 ;
 
     constexpr unsigned NumTotPara =  37;
     //these worked well --           {12, 13,14, 15, 16, 17  };
     //std::vector<int> paraIndex     { 0, 1, 2,3,4, 5};//, 7, 8, 9, 10, 11 };
-    std::vector<int> paraIndex     { 12, 13,14, 15, 16};//, 17, 18, 19, 20, 21};// DimParam = 6
+    std::vector<int> paraIndex     { 12, 13,14, 15, 16};//, 17, 18, 19, 20, 21};// DimParam = 5
     //std::vector<int> paraIndex     { 13 , 16 };
 
 
@@ -313,7 +313,7 @@ int main(){
 
 	double iter  		 = 100;
 	double alpha         = 0.5 * 1e-4;
-	alpha = 1e-3;
+	alpha = 5 * 1e-3;
 	double tau           = 0.9;
 	double pertNormRatio = 0.05;
 	double crossEntropyRatio = -1;

@@ -57,6 +57,14 @@ class matTools{
 				}
 		}
 
+		static Eigen::VectorXd ravelMatrixXdRowWiseToVectorXd(Mat& A){
+
+			Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> M(A);
+			Eigen::VectorXd V = Eigen::Map<Eigen::VectorXd> (M.data(), M.size());
+			return (V);
+		}
+
+
 };
 
 #endif /* matTools_HPP_ */
