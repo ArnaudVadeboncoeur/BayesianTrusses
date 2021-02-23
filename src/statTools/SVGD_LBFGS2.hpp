@@ -28,9 +28,9 @@ class SVGD_LBFGS{
 
 public:
 	//Constructors and member initializer lists
-	SVGD_LBFGS( FUNC_tupMatMat logPdelLogPFunc_, int i_, int j_, std::ofstream& CEHistFile_)
+	SVGD_LBFGS( FUNC_tupMatMat logPdelLogPFunc_, int i_, int j_, std::ofstream& CEHistFile_, std::ofstream& stateOfX_)
 	: FowardModelFunc( logPdelLogPFunc_ ),
-	  matRows(i_), matCols(j_) , CEHistFile(CEHistFile_)
+	  matRows(i_), matCols(j_) , CEHistFile(CEHistFile_), stateOfX(stateOfX_)
 	{}
 	double operator()( Vect& vX, Vect& grad){
 
@@ -38,6 +38,14 @@ public:
 
 		Mat X = Eigen::Map<Eigen::MatrixXd> (vX.data(), matCols, matRows );
 	    X.transposeInPlace();
+
+		Eigen::IOFormat CommaInitFmt(Eigen::StreamPrecision,
+									 Eigen::DontAlignCols,
+									 " ", "\n",
+									 "", "", "", "");
+		stateOfX.open("statofX.dat", std::ios::out | std::ios::trunc);
+		stateOfX << X.format(CommaInitFmt);
+		stateOfX.close();
 
 	    //std::cout << "X\n" << X << std::endl;
 
@@ -56,12 +64,16 @@ public:
 
 		grad = matTools::ravelMatrixXdRowWiseToVectorXd(gradMatrix);
 
+
 		crossEntropy_ = - FMlogP.mean();
 		fx = crossEntropy_;
 
 		std::cout << "f(x) = " << fx << std::endl;
 
+		CEHistFile.open("CEHist.dat", std::ios::out | std::ios::app);
 		CEHistFile << fx << "\n";
+		CEHistFile.close();
+
 
 		return fx;
 	}
@@ -80,6 +92,7 @@ private:
 	int matRows;
 	int matCols;
 	std::ofstream& CEHistFile;
+	std::ofstream& stateOfX;
 
 	FUNC_tupMatMat FowardModelFunc;
 

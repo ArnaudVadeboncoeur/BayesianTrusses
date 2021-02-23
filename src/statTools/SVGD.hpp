@@ -36,7 +36,8 @@ public:
 
 	void gradOptim_AdaMax( int iter,  double alpha = 1e-3, double PertNormRatioStop = 1e-9, double gradNormStop = -1.);
 
-	void gradOptim_AdaMaxCE(  FUNC2 logPdelLogP, int iter,  double alpha = 1e-3, double ceRatio = 0.05, double PertNormRatioStop = 1e-9, double gradNormStop = -1.);
+	void gradOptim_AdaMaxCE(  FUNC2 logPdelLogP, int iter,  double alpha = 1e-3, double ceRatio = 0.05, double crossEntropyValue = -1.,
+							  double PertNormRatioStop = 1e-9, double gradNormStop = -1.);
 
 	Mat getSamples( ) { return Xn;}
 
@@ -393,7 +394,8 @@ void SVGD< FUNC >::gradOptim_AdaMax(  int iter,  double alpha ,  double PertNorm
 }
 
 template< typename FUNC >
-void SVGD< FUNC >::gradOptim_AdaMaxCE( FUNC2 logPdelLogP, int iter,  double alpha, double ceRatio ,  double PertNormRatioStop, double gradNormStop){
+void SVGD< FUNC >::gradOptim_AdaMaxCE( FUNC2 logPdelLogP, int iter,  double alpha, double ceRatio, double crossEntropyValue ,
+									   double PertNormRatioStop, double gradNormStop){
 
 	std::cout << "Init Params --  AdaMax Opt" << std::endl;
 
@@ -480,7 +482,14 @@ void SVGD< FUNC >::gradOptim_AdaMaxCE( FUNC2 logPdelLogP, int iter,  double alph
 			ceDiff = std::abs( (CrossEntropyHistory(i, 0) - CrossEntropyHistory(i - 1, 0) )/ CrossEntropyHistory(i - 1, 0) );
 		}
 
-		if( gradNormStop < 0. && ceDiff  <  ceRatio    ){
+
+		if(CrossEntropyHistory(i, 0)  <  crossEntropyValue    ){
+			std::cout << "CrossEntropyHistory(i, 0)  <  crossEntropyValue \n\n";
+			std::cout << "crossEntropyValue  =" << crossEntropyValue << "\n";
+			std::cout << "CrossEntropyHistory(i, 0)  =" << CrossEntropyHistory(i, 0) << "\n";
+			break;
+		}
+		else if( gradNormStop < 0. && ceDiff  <  ceRatio    ){
 
 			std::cout << "ceDiff  <  ceRatio \n\n";
 			std::cout << "ceDiff  =" << ceDiff << "\n";
