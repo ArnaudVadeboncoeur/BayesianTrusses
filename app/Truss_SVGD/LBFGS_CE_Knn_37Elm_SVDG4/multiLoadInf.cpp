@@ -44,7 +44,8 @@ int main(){
     //these worked well --           {12, 13,14, 15, 16, 17  };
     //std::vector<int> paraIndex     { 0, 1, 2,3,4, 5};//, 7, 8, 9, 10, 11 };
     //std::vector<int> paraIndex     { 12, 13,14, 15, 16};//, 17, 18, 19, 20, 21};// DimParam = 6
-    std::vector<int> paraIndex     { 13 , 16 };
+    //std::vector<int> paraIndex     { 13 , 16 };
+    std::vector<int> paraIndex     { 9 , 13 };
 
 
     //---
@@ -217,6 +218,8 @@ int main(){
 
 	//compute del_xLogP(x)
 
+	int fmodelCtr = 0;
+
     using tupMatMat = std::tuple< Eigen::MatrixXd, Eigen::MatrixXd > ;
     using FUNCtupMatMat = std::function < tupMatMat (const Eigen::MatrixXd) >;
     using FUNC          = std::function < Eigen::MatrixXd (const Eigen::MatrixXd) >;
@@ -226,8 +229,11 @@ int main(){
     		  [&TrussFem,    &KThetaFunc,     &dudThetaFunc,    &uTheta,
 			   paraIndex,    DimK,DimObs,     DimPara,          ObsIndex,
 			   trueForcingC, trueSampleDispC, ytL, L,
-			   cov_n_Inv,    priorMeans,      PriorCovMatrixInv ]
+			   cov_n_Inv,    priorMeans,      PriorCovMatrixInv, &fmodelCtr ]
 			   (const  Eigen::MatrixXd& X ){
+
+    	std::cout << "Computing log p(x) and del log p(x)" << std::endl;
+    	fmodelCtr ++;
 
 		Eigen::MatrixXd delLogPVar (X.rows(), X.cols()); delLogPVar.setZero();
 		Eigen::MatrixXd LogPVar    (X.rows(), 1 );       LogPVar.setZero();
@@ -314,7 +320,10 @@ int main(){
 	XHist.open("XHist.dat", std::ios::out | std::ios::app);
 
 	std::ofstream CEHist;
-	CEHist.open("CEHist.dat", std::ios::out | std::ios::app);
+	//CEHist.open("CEHist.dat", std::ios::out | std::ios::app);
+
+	std::ofstream statofX;
+	//statofX.open("statofX.dat", std::ios::out | std::ios::trunc);
 
 
 
@@ -338,8 +347,8 @@ int main(){
 	double duplication_ratio = 1;
 
 
-	N0   = 100;
-	Nmax = 100;
+	N0   = 200;
+	Nmax = 200;
 	//for no knn
 	//gradNormStop = 26889.3;2Dim
 	//gradNormStop = 130644;//22Dim
@@ -347,7 +356,7 @@ int main(){
 
 
 
-	MVN mvn( priorMeans , PriorCovMatrix  );
+	MVN mvn( priorMeans , PriorCovMatrix );//* 0.5*0.5 );
 	Eigen::MatrixXd X = mvn.sampleMVN( N0 );
 
 
@@ -421,33 +430,51 @@ int main(){
 		std::cout << "\t conservativeResize: " << X.rows() << " x " << X.cols() << std::endl;
 	}
 
+//	// Set up parameters
+//	LBFGSpp::LBFGSBParam<double> param;  // New parameter class
+//
+//	                                       //LBFGSBParam()
+//	//2Dim 100 samples this works!         //{
+//	param.m              = 6;              //         m              = 6;
+//	param.epsilon        = 1e-5;           //         epsilon        = Scalar(1e-5);
+//	param.past           = 1;              //         past           = 1;
+//	param.delta          = 0.01;           //         delta          = Scalar(1e-10);
+//	param.max_iterations = 0;              //         max_iterations = 0;
+//	param.max_submin     = 20;            //         max_submin     = 20;
+//	param.max_linesearch = 5;            //         max_linesearch = 20;
+//	param.min_step       = 1e-20;          //         min_step       = Scalar(1e-20);
+//	param.max_step       = 1e+20;           //         max_step       = Scalar(1e+20);
+//	param.ftol           = 1e-2;//1e-4;           //         ftol           = Scalar(1e-4);
+//	param.wolfe          = 0.9;            //         wolfe          = Scalar(0.9);
+//	                                       //     }
+
 	// Set up parameters
 	LBFGSpp::LBFGSBParam<double> param;  // New parameter class
 
 	                                       //LBFGSBParam()
-	                                       //{
-	param.m              = 6;              //         m              = 6;
-	param.epsilon        = 1e-3;           //         epsilon        = Scalar(1e-5);
-	param.past           = 1;              //         past           = 1;
-	param.delta          = 1e-3;           //         delta          = Scalar(1e-10);
-	param.max_iterations = 0;              //         max_iterations = 0;
-	param.max_submin     = 20;             //         max_submin     = 20;
-	param.max_linesearch = 100;             //         max_linesearch = 20;
-	param.min_step       = 1e-20;          //         min_step       = Scalar(1e-20);
-	param.max_step       = 5 * 1e-2;       //         max_step       = Scalar(1e+20);
-	param.ftol           = 1e-10;          //         ftol           = Scalar(1e-4);
+                                         //{
+	param.m              = 6;            	//         m              = 6;
+	param.epsilon        = 1e-20;        	//         epsilon        = Scalar(1e-5);
+	param.epsilon_rel    = 1e-5;		    //epsilon_rel    = Scalar(1e-5);
+	param.past           = 1;              	//         past           = 1;
+	param.delta          = 0.0005;           //         delta          = Scalar(1e-10);
+	param.max_iterations = 100;             //         max_iterations = 0;
+	param.max_submin     = 20;            //         max_submin     = 20;
+	param.max_linesearch = 20;            //         max_linesearch = 20;
+	param.min_step       = 1e-50;          //         min_step       = Scalar(1e-20);
+	param.max_step       = 1;           //         max_step       = Scalar(1e+20);
+	param.ftol           = 1e-4;//1e-4;           //         ftol           = Scalar(1e-4);
 	param.wolfe          = 0.9;            //         wolfe          = Scalar(0.9);
 	                                       //     }
-
 
 
 	// Create solver and function object
 	LBFGSpp::LBFGSBSolver<double> solver(param);  // New solver class
 
-	SVGD_LBFGS func( delLogPtupMatMat,  X.rows(),  X.cols(), CEHist );
+	SVGD_LBFGS func( delLogPtupMatMat,  X.rows(),  X.cols(), CEHist, statofX );
 
 	// Bounds
-	Eigen::VectorXd lb = Eigen::VectorXd::Constant(X.rows()* X.cols() , 0.);
+	Eigen::VectorXd lb = Eigen::VectorXd::Constant(X.rows()* X.cols() , 1e-10 );
 	Eigen::VectorXd ub = Eigen::VectorXd::Constant(X.rows()* X.cols() , 1.);
 
 	Eigen::VectorXd vX = matTools::ravelMatrixXdRowWiseToVectorXd(X);
@@ -456,21 +483,22 @@ int main(){
 	double fx;
 	std::cout << "At Minimization -- \n";
 
-	std::cout << "vX\n" << vX << std::endl;
+	//std::cout << "vX\n" << vX << std::endl;
 
 	int niter = solver.minimize(func , vX, fx,  lb, ub);
-	std::cout << "Done Minimization\n";
+	std::cout << "\n\nDone Minimization\n";
+	std::cout << "fmodelCtr = " << fmodelCtr << std::endl;
 
 	X = Eigen::Map<Eigen::MatrixXd> (vX.data(), X.cols(), X.rows());
 	X.transposeInPlace();
 
 	std::cout << niter << " iterations" << std::endl;
-	std::cout << "X = \n" << X << std::endl;
+	//std::cout << "X = \n" << X << std::endl;
 	std::cout << "f(x) = " << fx << std::endl;
 
 	std::cout << "\n";
 
-	std::cout << "X.rows() " << X.rows() << std::endl;
+	//std::cout << "X.rows() " << X.rows() << std::endl;
 
 	std::cout << "ctr = " << ctrDup << std::endl;
 
