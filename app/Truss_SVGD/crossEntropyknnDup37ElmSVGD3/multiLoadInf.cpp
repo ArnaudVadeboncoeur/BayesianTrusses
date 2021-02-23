@@ -31,13 +31,14 @@ int main(){
 
     constexpr unsigned DimK       =  30 ;
     constexpr unsigned DimObs     =  20 ;
-    constexpr unsigned DimPara    =  5 ;
+    constexpr unsigned DimPara    =  22 ;
 
     constexpr unsigned NumTotPara =  37;
     //these worked well --           {12, 13,14, 15, 16, 17  };
     //std::vector<int> paraIndex     { 0, 1, 2,3,4, 5};//, 7, 8, 9, 10, 11 };
-    std::vector<int> paraIndex     { 12, 13,14, 15, 16};//, 17, 18, 19, 20, 21};// DimParam = 5
+    //std::vector<int> paraIndex     { 12, 13,14, 15, 16};//, 17, 18, 19, 20, 21};// DimParam = 5
     //std::vector<int> paraIndex     { 13 , 16 };
+    //std::vector<int> paraIndex     { 9 , 13 };
 
 
     //---
@@ -47,7 +48,7 @@ int main(){
     //500 svgd samples
     //---
 
-    //std::vector<int> paraIndex     {0, 1, 2, 3, 4,5, 6, 7, 8, 9, 10, 11, 12, 13,14, 15, 16, 17, 18, 19, 20, 21};//DimParam = 22
+    std::vector<int> paraIndex     {0, 1, 2, 3, 4,5, 6, 7, 8, 9, 10, 11, 12, 13,14, 15, 16, 17, 18, 19, 20, 21};//DimParam = 22
 
     bool plot                      = false;
     bool             plot_1_dim    = false;
@@ -311,20 +312,22 @@ int main(){
 
 
 
-	double iter  		 = 100;
-	double alpha         = 0.5 * 1e-4;
+	double iter  		 = 1000;
+	double alpha         = 1 * 1e-5;
 	alpha = 5 * 1e-3;
 	double tau           = 0.9;
-	double pertNormRatio = 0.05;
+	double pertNormRatio = 0.01;
 	double crossEntropyRatio = -1;
 	pertNormRatio = -1.;
 	//alpha = 1e-3;
-	crossEntropyRatio = 0.005;
+	crossEntropyRatio = -1; //0.0005;
+	double crossEntropyValue = -9e9;
+
 
 	int N0               = 10;
-	N0 = 500;
+	N0 = 100;
 
-	int Nmax             = 500;
+	int Nmax             = 100;
 
 	double gradNormStop  = -1.;
 
@@ -360,7 +363,7 @@ int main(){
 
 		SVGD< FUNC > svgd(delLogPSVGD);
 		svgd.InitSamples( X );
-		svgd.gradOptim_AdaMaxCE(delLogPtupMatMat, iter, alpha, crossEntropyRatio, pertNormRatio);
+		svgd.gradOptim_AdaMaxCE(delLogPtupMatMat, iter, alpha, crossEntropyRatio,crossEntropyValue, pertNormRatio);
 		X = svgd.Xn;
 
 		std::cout << "\n";
@@ -394,7 +397,7 @@ int main(){
 	alpha = alpha * tau;
 	SVGD< FUNC > svgd(delLogPSVGD);
 	svgd.InitSamples( X );
-	svgd.gradOptim_AdaMaxCE(delLogPtupMatMat, iter, alpha, crossEntropyRatio, pertNormRatio, gradNormStop);
+	svgd.gradOptim_AdaMaxCE(delLogPtupMatMat, iter, alpha, crossEntropyRatio,crossEntropyValue, pertNormRatio, gradNormStop);
 	X = svgd.Xn;
 
 	pertHist << svgd.pertNormHistory.format(CommaInitFmt) ;
